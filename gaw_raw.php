@@ -4,6 +4,7 @@ include('Crypt/RSA.php');
 
 
 class GAW {
+	public $DEBUG=4;// 1 - ERROR, 2 - WARNING, 3 - INFO, 4 - DEBUG1, 5 - DEBUG2, 6 - DEBUG3
 	private $hosts=array(
 		"spx"=>'54.183.10.158',                 // "/spx_*"
 		"ing"=>'ing0042.sphinxjoy.net'         // "/ING*"
@@ -12,6 +13,9 @@ class GAW {
 	private $crypt;
 	public $user=array();
 	private $root_url="/ING004/n/WebServer/Web/sogame/newControl";
+	private $fcookie='cookie.txt';
+	private $savers_file='/var/lib/dokuwiki/data/pages/mult_autosave.txt';
+	private $psw_file='/var/lib/dokuwiki/data/pages/gaw_logins.txt';
 	public $urls=array(
 		// + not standart requests 
 		// minimum need for login
@@ -27,6 +31,10 @@ class GAW {
 		"R_cancelFleet"=>"nmFleet/cancelFleet",// 44 push back to fleet
 		"R_sentFleet"=>"nmFleet/sentFleet", // sent fleet to save or attack (but not move to planet)
 		"R_getPlanetData"=>"nmPlanet/getPlanetData",// - 38 show info abount planet res (need check can we do it without getPlanetInfo)
+		"R_getSpacecraft"=>"nmUnit/getSpacecraft",// open Spacecraft (Kosmoverf)
+		"R_product"=>"nmUnit/product", // make new ships 
+		"R_getFrientList"=>"nmFriendEx/getFrientList", // friends list
+		"R_applyUnion"=>"nmFleet/applyUnion", //invite member to attack
 		"nmActivity/getActivityList",
 		"nmBuild/refresh",
 		"nmFleet/getRadarFleets", // get fleets in radar
@@ -34,8 +42,6 @@ class GAW {
 		"nmMerchant/getMerchant",
 		"nmPlanet/getPlanetInfo",// - 33 switch to planet
 		"nmTimeActivity/getGiftBoxCount", // I this it`s presents button
-		"nmUnit/getSpacecraft",// open Spacecraft (Kosmoverf)
-		"nmUnit/product", // make new ships 
 		// maybe need
 		"nmActive/getActiveDescInfo",
 		"nmActivity/getEvent",
@@ -56,7 +62,7 @@ class GAW {
 		"nmTimeActivity/getGiftBoxCount",
 		"nmUser/getGuideState"
 	);
-	public function __construct($acccount,$account_id,$user_name,$user_id,$psw_clear,$password_hash){
+	public function __construct($acccount,$user_name){
 		$this->crypt=new Crypt_RSA();
 		$this->crypt->loadKey($this->RSA_KEY);
 		$this->crypt->setEncryptionMode(CRYPT_RSA_ENCRYPTION_PKCS1);
@@ -99,20 +105,25 @@ class GAW {
 		$this->user["pkg_version"]="1.8.1";
 		// Dynamic user variables
 		$this->user['acccount']=$acccount; //account login
-		$this->user['account_id']=$account_id; //account id (need find where to get it)
-		$this->user['password_hash']=$password_hash;//clear psw hash for autologin, get after login
-		$this->user['psw_clear']=$psw_clear;//clear passwd
-		$this->user['psw']=$this->pub_crypt(strtoupper(md5($this->user['psw_clear'])));
-		$this->user['account_key']=$this->pub_crypt($this->user['password_hash']);
+		$this->user['account_id']=""; //account id (need find where to get it)
+		//$this->user['account_id']=$account_id; //account id (need find where to get it)
+		$this->user['password_hash']="";//clear psw hash for autologin, get after login
+		$this->user['psw_clear']="";//clear passwd
+		$this->user['psw']="";// crypted password
+		$this->user['account_key']="";
+		#$this->user['account_key']=$this->pub_crypt($this->user['password_hash']);
 		$this->user['client_id_clear']=strtoupper(md5(strtoupper(md5(rand(1,999999).time()."dajun"))));
 		$this->user['client_id']=$this->pub_crypt($this->user['client_id_clear']);
 		$this->user["client_key"]=$this->user['client_id'];
-		$this->user['user_id']=$user_id;//commander id
+		$this->user['user_id']="";//commander id
 		$this->user["user_name"]=$user_name;//commander name
 		$this->user["session"]="";
 		$this->user["token"]="";
 		$this->user["planets"]=array();
+		$this->user["planets_for_work"]=array();
 		$this->user["remote_last_results"]["R_tick"]["update"]=Date("c");//this string better to be last
+		exec('grep " \* " '.$this->savers_file.' | sed -e "s/^[\* ]\{1,\}//g" | sed -e "s/ .*$//g"',$this->user['savers_users']);
+		$this->cookie_read();
 	}
 	//***** PRIVATE FUNCTIONS ******
 	private function pub_crypt ($text){
@@ -166,7 +177,7 @@ class GAW {
 		return $SIGN;
 	}
 	private function open_url ($url,$data){
-		//echo "url: $url\n";
+		if ($this->DEBUG>=5) echo "url: $url\n";
 		$curl=curl_init($url);
 		curl_setopt($curl,CURLOPT_POST,true);
 		curl_setopt($curl, CURLOPT_POSTFIELDS, $data);
@@ -177,22 +188,71 @@ class GAW {
 		curl_close($curl);
 		return $response;
 	}
+	private function analyze_error ($func){
+		$error=$this->user["remote_last_results"][$func]["data"]["error"];
+		if (($error!=0)and($error != 1229))
+			die("error in request $func \n".
+				"GET: ".json_encode($this->user["remote_last_results"][$func]["request"]["get"])."\n".
+				"POST: ".json_encode($this->user["remote_last_results"][$func]["request"]["post"])."\n".
+				"RES: ".json_encode($this->user["remote_last_results"][$func]["data"])."\n");
+	}
 	private function remote_api ($exdata){
 		$debug=debug_backtrace();
 		$func=$debug["1"]["function"];
+		if ($this->DEBUG>=4) echo "CALL: $func\n";
 		$url="http://".$this->hosts["ing"].$this->root_url."/".$this->urls[$func];
 		$common_data=$this->common_data();
 		$url=$url."?sign=".$this->getSign($exdata);
                 $post_str="user_id=".$this->user["user_id"]."&user_name=".$this->user["user_name"]."&common_data=".json_encode($common_data)."&ex_data=".json_encode($exdata,JSON_FORCE_OBJECT)."&type=1";
 		$res=$this->open_url($url,$post_str);
 		$this->user["remote_last_results"][$func]["update"]=Date("c");
+		$this->user["remote_last_results"][$func]["request"]["get"]=$url;
+		$this->user["remote_last_results"][$func]["request"]["post"]=$post_str;
 		$this->user["remote_last_results"][$func]["data"]=json_decode($res,true);
-		if ($this->user["remote_last_results"][$func]["data"]["error"]!=0)
-			die("error in request $func\n");
+		$this->user["remote_last_results"][$func]["raw"]=$res;
+		$this->analyze_error($func);
+	}
+	private function cookie_read(){
+		//read account id and pwd hash from cookie file
+		if(file_exists($this->fcookie)){
+			$data=json_decode(file_get_contents($this->fcookie),true);
+			if ((isset($data[$this->user['acccount']]['account_id']))and($data[$this->user['acccount']]['password_hash'])){
+				$this->user['account_id']=$data[$this->user['acccount']]['account_id'];
+				$this->user['password_hash']=$data[$this->user['acccount']]['password_hash'];
+				$this->user['account_key']=$this->pub_crypt($this->user['password_hash']);
+				return true;
+			}
+		}
+		return false;
+	}
+	private function cookie_save(){
+		//save cookie, if need update or set pwd hash (need do after R_login)
+		if(file_exists($this->fcookie))
+			$data=json_decode(file_get_contents($this->fcookie),true);
+		$data[$this->user['acccount']]['account_id']=$this->user['account_id'];
+		$data[$this->user['acccount']]['password_hash']=$this->user['password_hash'];
+		file_put_contents($this->fcookie,json_encode($data));
+		return true;
+	}
+	public function get_login_password(){
+		$this->user['psw_clear']=exec ('grep "'.$this->user['acccount'].'" '.$this->psw_file.' | cut -d"|" -f 3 | sed -e "s/<decrypt>\(.*\)<\/decrypt>/\1/" | openssl enc -d -aes-256-cbc -a -k psw');
+		$this->user['psw']=$this->pub_crypt(strtoupper(md5($this->user['psw_clear'])));
+	}
+	public function is_user_online($user_name){
+		foreach($this->user['remote_last_results']['R_getFrientList']['data']['friends'] as $val){
+			if ($val['user_name']==$user_name){
+				if ($val['heart_beat']<=60)
+					return $val['user_id'];
+				else
+					return 0;
+			}
+		}
+		return -1;
 	}
 	//***** PRIVATE FUNCTIONS - GAW REMOTE REQUESTS (for develop stage that functions are public) *****
 	public function R_login (){//non standart request
 		//login to game with clear user password
+		if ($this->DEBUG>=4) echo "CALL: R_login\n";
 		$url="http://".$this->hosts["spx"].'/spx_account/index.php/api_account/login';
 		$pd=array(
 			"app_key"=>$this->user['app_key'],
@@ -203,11 +263,16 @@ class GAW {
 			"client_key"=>urlencode($this->user['client_key'])
 		);
 		$res=$this->open_url($url,"pd=".json_encode($pd));
+		$ares=json_decode($res,true);
+		$this->user["account_id"]=$ares['account_id'];
+		$this->user["password_hash"]=$ares['account_key'];
+		$this->user['account_key']=$this->pub_crypt($this->user['password_hash']);
 		$this->user["remote_last_results"]["R_login"]["update"]=Date("c");
-		$this->user["remote_last_results"]["R_login"]["data"]=json_decode ($res,true);
+		$this->user["remote_last_results"]["R_login"]["data"]=$ares;
 	}
 	public function R_auto_login (){//non standart request
 		// day to day login with saved password hash 
+		if ($this->DEBUG>=4) echo "CALL: R_auto_login\n";
 		$url="http://".$this->hosts["spx"]."/spx_account/index.php/api_account/auto_login";
 		$pd=array(
 			"app_key"=>$this->user['app_key'],
@@ -225,6 +290,7 @@ class GAW {
 	}
 	public function R_getUserList (){//non standart request
 		//get list of commanders for user
+		if ($this->DEBUG>=4) echo "CALL: R_getUserList\n";
 		$url="http://".$this->hosts["ing"].$this->root_url."/nmLogin/getUserList";
 		$common_data=$this->common_data();
 		$data=array(
@@ -239,9 +305,16 @@ class GAW {
 		$this->user["remote_last_results"]["R_getUserList"]["data"]=json_decode ($res,true);
 	}
 	public function R_enterGame (){//non standart request
-		//enter to game for specific commander name
+		//enter to game for specific commander name (getUserList first required)
+		if ($this->DEBUG>=4) echo "CALL: R_enterGame\n";
 		$url="http://".$this->hosts["ing"].$this->root_url."/nmLogin/enterGame";
 		$common_data=$this->common_data();
+		foreach ($this->user["remote_last_results"]["R_getUserList"]["data"]["users"] as $val){
+			if ($val["user_name"]==$this->user["user_name"]){
+				$this->user["user_id"]=$val["user_id"];
+				break;
+			}
+		}
 		$data=array(
 			"server_id"=>$this->user["server_id"],
 			"spx_id"=>$this->user["spx_id"],
@@ -288,6 +361,20 @@ class GAW {
 		$exdata=array();
 		$this->remote_api($exdata);
 	}
+        public function R_getFrientList (){
+		//get list of commander planets (exdata clean)
+		$exdata=array();
+		$this->remote_api($exdata);
+	}
+        public function R_getSpacecraft ($planet){
+		//get info about planet production
+		$exdata=array(
+			"planet_id"=>$planet
+		);
+		$this->remote_api($exdata);
+		$this->user["planets"][$planet]["spacecraft"]["update"]=Date("c");
+		$this->user["planets"][$planet]["spacecraft"]["data"]=$this->user["remote_last_results"]["R_getSpacecraft"]["data"]["data"];
+	}
         public function R_getPlanetData ($planet){
 		//get info about planet production
 		$exdata=array(
@@ -328,20 +415,20 @@ class GAW {
 		);
 		$this->remote_api($exdata);
 	}
-	public function R_sentFleet ($planets,$res_to_send,$ships_to_send){//need finish and check
+	public function R_sentFleet ($purpose,$planets,$res_to_send,$ships_to_send){//need finish and check
 		$ships=array(
 			//есть подозрение что данные для отправки надо считать исходя из того что есть в наличии, тоесть если на планке есть ЛИ но мы не хотим отправлять их на атаку то надо явно указать 0, если же ЛИ на планке нет то ненадо их указывать вообще
-			"1"=>0,//большой грузовик
-			"0"=>0,
-			"3"=>0,//тяжелый истребитель
-			"2"=>0,
-			"5"=>0,
-			"4"=>0,
-			"7"=>0,
-			"6"=>0,
-			"22"=>0,//супер груз
-			"11"=>0,
-			"10"=>0//зонд
+			//"1"=>0,//большой грузовик
+			//"0"=>0,
+			//"3"=>0,//тяжелый истребитель
+			//"2"=>0,
+			//"5"=>0,
+			//"4"=>0,
+			//"7"=>0,
+			//"6"=>0,
+			//"22"=>0,//супер груз
+			//"11"=>0,
+			//"10"=>0//зонд
 		);
 		$res=array (
 			"0"=>0,//metal
@@ -356,7 +443,7 @@ class GAW {
 		}
 		$exdata=array(
 			"end_pos"=>$planets["to"],//where attak, gal_sys_planet
-			"purpose"=>8,// причина отправки, 7 - перемещение, 8 - атака
+			"purpose"=>$purpose,// причина отправки, 1 - возврат (только при показе), 7 - перемещение, 8 - атака, 9 - видел пока незнаю (возможно совместка)
 			"upshift"=>1,// ускорение 0 - без ускорения, 1 - 100% (газ)
 			"bring_res"=>$res,
 			"bring_ship"=>$ships,
@@ -374,18 +461,41 @@ class GAW {
 		);
 		$this->remote_api($exdata);
 	}
+        public function R_product ($planet,$count,$unit_id){
+		//get info about planet production
+		$exdata=array(
+			"planet_id"=>$planet,
+			"count"=>$count,
+			"unit_id"=>$unit_id
+		);
+		$this->remote_api($exdata);
+	}
+	public function R_applyUnion ($fleetid,$user_id){
+		//invite member to attack
+		//for now only 1 can me invited
+		$exdata=array(
+			"fleet_uid"=>$fleetid,
+			"target_user_id_array"=>array(
+				"0"=>$user_id
+			)
+		);
+		$this->remote_api($exdata);
+	}
 	//***** PUBLIC FUNCTIONS -  API FOR OTHERS ******
 	public function G_login (){
 		if ($this->user["password_hash"]==""){
+			$this->get_login_password();
 			$this->R_login();
-			$this->user["password_hash"]=$this->user["remote_last_results"]["R_login"]["data"]["account_key"];
-			$this->user['account_key']=$this->pub_crypt($this->user['password_hash']);
+			$this->cookie_save();
 		}
 		$this->R_auto_login();
-		$this->R_enterGame();
-		$this->R_getItemPrice();
-		$this->R_getUserPlanetList();
-		$this->G_ping_now();
+		$this->R_getUserList();
+		if ($this->user["user_name"]!=""){
+			$this->R_enterGame();
+			$this->R_getItemPrice();
+			$this->R_getUserPlanetList();
+			$this->G_ping_now();
+		}
 	}
 	public function G_ping_now(){
 			$this->R_tick();
@@ -401,6 +511,7 @@ class GAW {
 		}
 	}
 	public function G_updatePlanetsInfo($what_check,$delay){
+		//last must take data from mother position
 		$planets=array();
 		if ((is_string($what_check))and($what_check=="all")){
 			foreach ($this->user['remote_last_results']['R_getUserPlanetList']['data']['planets'] as $val){
@@ -412,18 +523,99 @@ class GAW {
 		//need check if some active user is owner of some planet_id
 		foreach ($planets as $planet_loc){
 			$do=false;
-			if (isset($this->user["planets"][$planet_loc]['update'])){
-				if (strtotime("now")-strtotime($this->user["planets"][$planet_loc]['update'])>=$delay)
+			if (isset($this->user["planets"][$planet_loc]["info"]['update'])){
+				if (strtotime("now")-strtotime($this->user["planets"][$planet_loc]["info"]['update'])>=$delay)
 					$do=true;
 			}
 			else 
 				$do=true;
 			if ($do==true){
-				$this->user["planets"][$planet_loc]["update"]=Date("c");
+				$this->user["planets"][$planet_loc]["info"]["update"]=Date("c");
 				$this->R_getPlanetData($planet_loc);
-				$this->user["planets"][$planet_loc]["data"]=$this->user['remote_last_results']['R_getPlanetData']['data'];
+				$this->user["planets"][$planet_loc]["info"]["data"]=$this->user['remote_last_results']['R_getPlanetData']['data'];
 			}
 		}
+	}
+	public function G_sleep($total_sleep){
+		$sleep_sec=2;
+		$tek_sleep=0;
+		$step_sec=0;
+		while (true){
+			$this->G_ping();
+			$tek_sleep=$tek_sleep+$sleep_sec;
+			$step_sec=$step_sec+$sleep_sec;
+			if ($step_sec>60){
+				$left=$total_sleep-$tek_sleep;
+				echo "left ".$left."\n";
+				$step_sec=0;
+			}
+			if ($tek_sleep>$total_sleep)
+				break;
+			sleep ($sleep_sec);
+		}
+	}
+	public function G_Spacecraft($what_check){
+		//last must take data from mother position
+		$planets=array();
+		if ((is_string($what_check))and($what_check=="all")){
+			foreach ($this->user['remote_last_results']['R_getUserPlanetList']['data']['planets'] as $val){
+				$planets[]=$val['position'][0]."_".$val['position'][1]."_".$val['position'][2];
+			}
+		}
+		else 
+			$planets=$what_check;
+		//need check if some active user is owner of some planet_id
+		foreach ($planets as $planet_loc){
+			$this->user["planets"][$planet_loc]["spacecraft"]["update"]=Date("c");
+			$this->R_getSpacecraft($planet_loc);
+			$this->user["planets"][$planet_loc]["spacecraft"]["data"]=$this->user['remote_last_results']['R_getSpacecraft']['data'];
+		}
+	}
+	public function G_Save(){
+		//send fleet to save, friends online first
+		$this->R_getFrientList();
+		$mother=
+			$this->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][0]."_".
+			$this->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][1]."_".
+			$this->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][2];
+		$pirates=
+			$this->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][0]."_".
+			$this->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][1]."_17";
+		$this->G_updatePlanetsInfo(array($mother),0);
+		$this->R_getSpacecraft($mother);
+		$ships=array(
+			"22"=>$this->user["planets"][$mother]["spacecraft"]["data"][22],
+			"1"=>$this->user["planets"][$mother]["spacecraft"]["data"][1]
+		);
+		$planets["to"]=$pirates;
+		$planets["from"]=$mother;
+		$gas=$this->user["planets"][$mother]["info"]["data"]["res"][2]["now"]-100000;
+		if ($gas<0)$gas=0;
+			$res=array(
+				"0"=>$this->user["planets"][$mother]["info"]["data"]["res"][0]["now"],
+				"1"=>$this->user["planets"][$mother]["info"]["data"]["res"][1]["now"],
+				"2"=>$gas
+		);
+		$this->R_sentFleet(8,$planets,$res,$ships);
+		$save_uid=$this->user['remote_last_results']["R_sentFleet"]['data']['fleet_uid'];
+		$save_done=false;
+		foreach ($this->user['savers_users'] as $save_user){
+			$save_user_id=$this->is_user_online($save_user);
+			if ($save_user_id>0){
+				$this->R_applyUnion($save_uid,$save_user_id);
+				$this->G_sleep(60);
+        			$this->R_getAllInfo ();
+				foreach($this->user['remote_last_results']['R_getAllInfo']['data']['fleet'] as $fleet){
+					if (($fleet['fleet_uid']==$save_uid)and($fleet['time']>200000)){
+						$save_done=true;
+						break;
+					}
+				}
+			}
+			if ($save_done)
+				break;
+		}
+		return $save_done;
 	}
 }
 ?>
