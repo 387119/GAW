@@ -35,13 +35,11 @@ class GAW {
 		"R_product"=>"nmUnit/product", // make new ships 
 		"R_getFrientList"=>"nmFriendEx/getFrientList", // friends list
 		"R_applyUnion"=>"nmFleet/applyUnion", //invite member to attack
-		"nmActivity/getActivityList",
+		"R_getActivityList"=>"nmActivity/getActivityList", //list of presents
+		"R_getActivityReward"=>"nmActivity/getActivityReward",// take available presents
 		"nmBuild/refresh",
 		"nmFleet/getRadarFleets", // get fleets in radar
-		"nmGiftbag/reflushRecommend", 
-		"nmMerchant/getMerchant",
 		"nmPlanet/getPlanetInfo",// - 33 switch to planet
-		"nmTimeActivity/getGiftBoxCount", // I this it`s presents button
 		// maybe need
 		"nmActive/getActiveDescInfo",
 		"nmActivity/getEvent",
@@ -481,6 +479,27 @@ class GAW {
 		);
 		$this->remote_api($exdata);
 	}
+	public function R_getActivityList(){
+		//get list of presents
+		$exdata=array(
+			"skip"=>0,
+			"language"=>$this->user["language"],
+			"limit"=>0
+		);
+		$this->remote_api($exdata);
+	}
+	public function R_getActivityReward($activity_id){
+		$mother=
+			$this->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][0]."_".
+			$this->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][1]."_".
+			$this->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][2];
+		$exdata=array(
+			"planet_id"=>$mother,
+			"language"=>$this->user["language"],
+			"activity_id"=>$activity_id
+		);
+		$this->remote_api($exdata);
+	}
 	//***** PUBLIC FUNCTIONS -  API FOR OTHERS ******
 	public function G_login (){
 		if ($this->user["password_hash"]==""){
@@ -494,20 +513,19 @@ class GAW {
 			$this->R_enterGame();
 			$this->R_getItemPrice();
 			$this->R_getUserPlanetList();
-			$this->G_ping_now();
+			$this->G_ping(true);
 		}
 	}
-	public function G_ping_now(){
-			$this->R_tick();
-			$this->R_getGameDataEx();
-	}
-	public function G_ping(){
+	public function G_ping($now=false){
 		$doping=false;
 		if (strtotime("now")-strtotime($this->user["remote_last_results"]["R_tick"]['update'])>30)
+			$doping=true;
+		if ($now)
 			$doping=true;
 		if ($doping==true){
 			$this->R_tick();
 			$this->R_getGameDataEx();
+			$this->G_gatherPresents();
 		}
 	}
 	public function G_updatePlanetsInfo($what_check,$delay){
@@ -616,6 +634,34 @@ class GAW {
 				break;
 		}
 		return $save_done;
+	}
+	public function G_gatherPresents(){
+		//check if first request then update
+		if (!isset($this->user['remote_last_results']['R_getActivityList']))
+			$this->R_getActivityList();
+		//find minimal overplus
+		$overplus_min=999999;
+		foreach ($this->user['remote_last_results']['R_getActivityList']['data']['activity'] as $val){
+			if ($val['overplus']<$overplus_min)
+				$overplus_min=$val['overplus'];
+		}
+		$next=time($this->user['remote_last_results']['R_getActivityList']['update'])+$overplus_min;
+		echo Date("c")." overplus_min:$overplus_min , last ".$this->user['remote_last_results']['R_getActivityList']['update']." , next ".Date("c",$next)."\n";
+		//check if update + overplus_min <= now then new update
+		if (strtotime($this->user['remote_last_results']['R_getActivityList']['update'])+$overplus_min<=time()){
+			$this->R_getActivityList();
+		}
+		//look and take where overplus=0 and new update
+		$took=false;
+		foreach ($this->user['remote_last_results']['R_getActivityList']['data']['activity'] as $val){
+			if ($val['overplus']==0){
+				echo "take present number ".$val['receive_id']."\n";
+				$this->R_getActivityReward($val['activity_id']);
+				$took=true;
+			}
+		}
+		if ($took)
+			$this->R_getActivityList();
 	}
 }
 ?>

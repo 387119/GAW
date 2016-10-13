@@ -7,21 +7,21 @@ include "gaw_raw.php";
 //Initialization 
 //$gaw=new GAW("login_name","login_id","user_name","user_id","pass_clear","pass_hash");
 
-#$gaw=new GAW("387119","ElMar");
+$gaw=new GAW("387119","ElMar");
 
-#$gaw=new GAW("Partizanka8","Хз до");
+#$gaw=new GAW("Partizanka8","jI2n6k5O","Хз до");
 #$gaw->user["planets_for_work"]=array("187_445_8","187_445_13","187_445_4","187_447_4","187_441_15");
 
 #$gaw=new GAW("Partizanka8","Arkady");
 #$gaw->user["planets_for_work"]=array("187_444_6","187_444_11","187_444_12","187_444_5","187_444_15","187_446_4");
 
-#$gaw=new GAW("Partizanka8","Partizankа8");
+#$gaw=new GAW("Partizanka8","jI2n6k5O","Partizankа8");
 #$gaw->user["planets_for_work"]=array("187_442_13","187_442_10","187_442_14","187_445_5","187_446_14");
 
-#$gaw=new GAW("mamed","MAMED");
+#$gaw=new GAW("mamed","sobstvenostala","MAMED");
 #$gaw->user["planets_for_work"]=array("179_441_1","179_442_5","179_441_9","179_441_3","179_441_4");
 
-#$gaw=new GAW("mamed","G20529864S15");
+#$gaw=new GAW("mamed","sobstvenostala","G20529864S15");
 #$gaw->user["planets_for_work"]=array("179_441_5","179_441_15","179_441_2","179_441_7","179_441_12");
 
 //Василий Новиков
@@ -29,8 +29,8 @@ include "gaw_raw.php";
 
 #$gaw=new GAW("Vasjamba","Василий Новиков");
 #$gaw->user["planets_for_work"]=array("174_394_4","174_396_3","174_397_3","174_397_4","174_397_5","174_397_8","174_399_15");
-$gaw=new GAW("Vasjamba","Cat_of_the_Rio");
-$gaw->user["planets_for_work"]=array("174_393_8","174_393_9","174_395_6","174_395_11","174_395_13","174_395_14");
+#$gaw=new GAW("Vasjamba","Cat_of_the_Rio");
+#$gaw->user["planets_for_work"]=array("174_393_8","174_393_9","174_395_6","174_395_11","174_395_13","174_395_14");
 #$gaw=new GAW("Vasjamba","Stornado320");
 #$gaw->user["planets_for_work"]=array("174_403_1","174_404_7","174_405_4","174_405_7","174_405_13","174_407_6");
 
@@ -48,8 +48,9 @@ $gaw->G_login();
 #$gaw->G_updatePlanetsInfo("all",0);
 #$gaw->G_Spacecraft("all");
 #$gaw->G_Save();
+$gaw->G_Sleep(10800);
 #print_r($gaw->user);
-#die();
+die();
 #$test->R_getUniverse (10,10);
 /*
 	1 - флот летает, ресов нет +
