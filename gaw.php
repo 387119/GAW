@@ -1,21 +1,49 @@
 <?php
 include "gaw_raw.php";
+function inlog ($text){
+	file_put_contents("finish.log",$text."\n",FILE_APPEND);
+	echo $text."\n";
+}
+$login=$argv[1];
+$user=$argv[2];
+if (isset($argv[3]))
+	$save=$argv[3];// 0 - now save, 1 - save with res, 2 - save without res
+else
+	$save=1;
 // вывалилось с ошибкой когда в сейве было недостаточно грузов даже для рассылки по планкам
 
 // Предполагается что на основе есть хотябі минимально необходимое количество грузовиков для перекачки ресов, недостающие будут достраиваться по тихоньку
 
 //Initialization 
 //$gaw=new GAW("login_name","login_id","user_name","user_id","pass_clear","pass_hash");
-
-$gaw=new GAW("387119","ElMar");
+switch ($save){
+	case "0":
+		$save_with_res=false;
+		$send_to_save=false;
+		break;
+	case "1":
+		$save_with_res=true;
+		$send_to_save=true;
+		break;
+	case "2":
+		$save_with_res=false;
+		$send_to_save=true;
+		break;
+	default:
+		$save_with_res=true;
+		$send_to_save=true;
+		break;
+}
+#$gaw=new GAW("387119","ElMar");
 
 #$gaw=new GAW("Partizanka8","jI2n6k5O","Хз до");
 #$gaw->user["planets_for_work"]=array("187_445_8","187_445_13","187_445_4","187_447_4","187_441_15");
 
 #$gaw=new GAW("Partizanka8","Arkady");
 #$gaw->user["planets_for_work"]=array("187_444_6","187_444_11","187_444_12","187_444_5","187_444_15","187_446_4");
+inlog("START: $login / $user / $save / ".Date("c"));
 
-#$gaw=new GAW("Partizanka8","jI2n6k5O","Partizankа8");
+$gaw=new GAW($login,$user);
 #$gaw->user["planets_for_work"]=array("187_442_13","187_442_10","187_442_14","187_445_5","187_446_14");
 
 #$gaw=new GAW("mamed","sobstvenostala","MAMED");
@@ -47,9 +75,10 @@ $gaw->G_login();
 #$gaw->R_enterGame();
 #$gaw->G_updatePlanetsInfo("all",0);
 #$gaw->G_Spacecraft("all");
-#$gaw->G_Save();
-$gaw->G_Sleep(10800);
-#print_r($gaw->user);
+#$gaw->G_Save(false);
+#$gaw->G_Sleep(10800);
+$gaw->R_getRadarFleets();
+print_r($gaw->user);
 die();
 #$test->R_getUniverse (10,10);
 /*
@@ -77,7 +106,26 @@ $res_max=1000000;
 $res_max_taked=true;
 
 // подготавливаем список планет для обхода.
-
+echo Date("c")." определяем список планет для обхода\n";
+foreach ($gaw->user["planets"] as $planet => $data){
+	$to_work=false;
+	if (($data["info"]["data"]["build"]["7"]["lv"]>=8)or($data["info"]["data"]["build"]["8"]["lv"]>=8)or($data["info"]["data"]["build"]["9"]["lv"]>=8))
+		$to_work=true;
+	if ($to_work==true){
+		if (
+			($data["info"]["data"]["skin_id"]==56)or
+			($data["info"]["data"]["build"]["12"]["lv"]==1)or
+			($data["info"]["data"]["spacecraft"]["10"]["count"]==8)or
+			($mother==$planet)
+		)
+		$to_work=false;
+	}
+	if ($to_work==true){
+		$gaw->user["planets_for_work"][]=$planet;
+	}else{
+		echo "skip $planet\n";
+	}
+}
 
 echo  Date("c")." проверяем достаточно ли лежит на планках\n";
 foreach ($gaw->user["planets"] as $key => $val){
@@ -238,7 +286,7 @@ while (true){
 }
 
 // дупля не кину как проверку сделать на необходимость выполнения данного пункта, надо подумать
-if ($res_max_taked==true){
+if (($res_max_taked==true)and($save_with_res==true)and($send_to_save==true)){
 	//отработает пока только при правильной первой отработки скрипта
 	echo Date("c")." постройка грузов при необходимости\n";
 	$gaw->G_updatePlanetsInfo(array($mother),0);
@@ -249,22 +297,24 @@ if ($res_max_taked==true){
 	$res=intval($res);
 	$cargo_res=($gaw->user["planets"][$mother]["spacecraft"]["data"]["22"]*75000)+
 		($gaw->user["planets"][$mother]["spacecraft"]["data"]["1"]*25000);
+	$cargo_res=intval($cargo_res*1.2);
 	echo "на планке $res ресов, можно увезти $cargo_res\n";
 	if ($res>$cargo_res){
 		$newcargo=(($res-$cargo_res)/2)/6000;
 		$delta=intval($newcargo/10);
 		if ($delta<=1)$delta=10;
 		$newcargo=$newcargo+$delta;
-		$newcargo=100;
 		$gaw->R_product($mother,$newcargo,1);
 		echo "need create $newcargo with delta $delta\n";
 	}
 }
 
-$gaw->G_Save();
 /// SAVE!!!!
-
-echo "--------------------\n";
-print_r ($gaw->user);
+if ($send_to_save==true)
+	$gaw->G_Save($save_with_res);
+// set finish to log
+inlog("STOP: $login / $user / $save / ".Date("c"));
+#echo "--------------------\n";
+#print_r ($gaw->user);
 ?>
 
