@@ -1,13 +1,21 @@
 <?php
+/*
+	todo
+	- немогу решить как засейвить основную планку пока грузы летают за ресами, 2 варианта
+		- поднять вместе с грузами на время максимального полета туда и назад за ресами (надо расчитывать время полёта, как незнаю.)
+		- ждать и подымать только в случае атаки (тут авто подьём надо реализовать, где и как пока незнаю)
+ обнаруженные бока в процессе эксплуатации
+ 1 - если нет сейверов в друзьях то сейв уйдёт но не продлится.
+
+*/
 include "gaw_raw.php";
 function inlog ($text){
 	file_put_contents("finish.log",$text."\n",FILE_APPEND);
 	echo $text."\n";
 }
-$login=$argv[1];
-$user=$argv[2];
-if (isset($argv[3]))
-	$save=$argv[3];// 0 - now save, 1 - save with res, 2 - save without res
+$user=$argv[1];
+if (isset($argv[2]))
+	$save=$argv[2];// 0 - now save, 1 - save with res, 2 - save without res
 else
 	$save=1;
 // вывалилось с ошибкой когда в сейве было недостаточно грузов даже для рассылки по планкам
@@ -41,9 +49,14 @@ switch ($save){
 
 #$gaw=new GAW("Partizanka8","Arkady");
 #$gaw->user["planets_for_work"]=array("187_444_6","187_444_11","187_444_12","187_444_5","187_444_15","187_446_4");
-inlog("START: $login / $user / $save / ".Date("c"));
-
-$gaw=new GAW($login,$user);
+// check if user is online
+inlog("START: $user / $save / ".Date("c"));
+$status=exec ("./get_status.sh '${user}'");
+if ($status!="offline"){
+	inlog("BREAK: $user / $save / user is online /".Date("c"));
+	die(1);
+}
+$gaw=new GAW($user);
 #$gaw->user["planets_for_work"]=array("187_442_13","187_442_10","187_442_14","187_445_5","187_446_14");
 
 #$gaw=new GAW("mamed","sobstvenostala","MAMED");
@@ -69,6 +82,7 @@ $gaw=new GAW($login,$user);
 /// добавить проверку планок которіе надо обрабатівать
 
 $gaw->G_login();
+$status=exec ("./set_bot1.sh '${user}'");
 #$gaw->R_getAllInfo();
 #$gaw->R_auto_login();
 #$gaw->R_getUserList();
@@ -77,9 +91,10 @@ $gaw->G_login();
 #$gaw->G_Spacecraft("all");
 #$gaw->G_Save(false);
 #$gaw->G_Sleep(10800);
-$gaw->R_getRadarFleets();
-print_r($gaw->user);
-die();
+#$gaw->R_getRadarFleets();
+#$gaw->R_getFrientList();
+#print_r($gaw->user);
+#die();
 #$test->R_getUniverse (10,10);
 /*
 	1 - флот летает, ресов нет +
@@ -102,7 +117,7 @@ $mother=
 	$gaw->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][1]."_".
 	$gaw->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][2];
 //check if enough resources on planets
-$res_max=1000000;
+$res_max=900000;
 $res_max_taked=true;
 
 // подготавливаем список планет для обхода.
@@ -137,6 +152,10 @@ foreach ($gaw->user["planets"] as $key => $val){
 			$res_max_taked=false;
 		}
 	}
+}
+
+if ($res_max_taked==true){
+	exec("./set_res.sh '".$gaw->user["user_name"]."' сбор");
 }
 
 echo  Date("c")." если достаточно то возвращаем сейв материнской планки\n";
@@ -296,8 +315,9 @@ if (($res_max_taked==true)and($save_with_res==true)and($send_to_save==true)){
 		$gaw->user["planets"][$mother]["info"]["data"]["res"][2]["now"];
 	$res=intval($res);
 	$cargo_res=($gaw->user["planets"][$mother]["spacecraft"]["data"]["22"]*75000)+
-		($gaw->user["planets"][$mother]["spacecraft"]["data"]["1"]*25000);
-	$cargo_res=intval($cargo_res*1.2);
+		($gaw->user["planets"][$mother]["spacecraft"]["data"]["1"]*25000)+
+		($gaw->user["planets"][$mother]["spacecraft"]["data"]["23"]*40000);
+	$cargo_res=intval($cargo_res);
 	echo "на планке $res ресов, можно увезти $cargo_res\n";
 	if ($res>$cargo_res){
 		$newcargo=(($res-$cargo_res)/2)/6000;
@@ -313,7 +333,7 @@ if (($res_max_taked==true)and($save_with_res==true)and($send_to_save==true)){
 if ($send_to_save==true)
 	$gaw->G_Save($save_with_res);
 // set finish to log
-inlog("STOP: $login / $user / $save / ".Date("c"));
+inlog("STOP: $user / $save / ".Date("c"));
 #echo "--------------------\n";
 #print_r ($gaw->user);
 ?>

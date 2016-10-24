@@ -14,6 +14,7 @@ class GAW {
 	public $user=array();
 	private $root_url="/ING004/n/WebServer/Web/sogame/newControl";
 	private $fcookie='cookie.txt';
+	private $db_dir='/var/lib/dokuwiki/data/pages';
 	private $savers_file='/var/lib/dokuwiki/data/pages/mult_autosave.txt';
 	private $psw_file='/var/lib/dokuwiki/data/pages/gaw_logins.txt';
 	public $urls=array(
@@ -64,7 +65,7 @@ class GAW {
 		"nmTimeActivity/getGiftBoxCount",
 		"nmUser/getGuideState"
 	);
-	public function __construct($acccount,$user_name){
+	public function __construct($user_name,$first_login=false){
 		$this->crypt=new Crypt_RSA();
 		$this->crypt->loadKey($this->RSA_KEY);
 		$this->crypt->setEncryptionMode(CRYPT_RSA_ENCRYPTION_PKCS1);
@@ -106,7 +107,6 @@ class GAW {
 		$this->user["server_id"]=91;
 		$this->user["pkg_version"]="1.8.1";
 		// Dynamic user variables
-		$this->user['acccount']=$acccount; //account login
 		$this->user['account_id']=""; //account id (need find where to get it)
 		//$this->user['account_id']=$account_id; //account id (need find where to get it)
 		$this->user['password_hash']="";//clear psw hash for autologin, get after login
@@ -118,7 +118,14 @@ class GAW {
 		$this->user['client_id']=$this->_pub_crypt($this->user['client_id_clear']);
 		$this->user["client_key"]=$this->user['client_id'];
 		$this->user['user_id']="";//commander id
-		$this->user["user_name"]=$user_name;//commander name
+		if ($first_login==false){
+			$this->user["user_name"]=$user_name;//commander name
+			$this->user['acccount']=""; //account login
+		}
+		else{
+			$this->user["user_name"]="";//commander name
+			$this->user['acccount']=$user_name; //account login
+		}
 		$this->user["session"]="";
 		$this->user["token"]="";
 		$this->user["mother"]="";
@@ -240,7 +247,11 @@ class GAW {
 		return true;
 	}
 	public function _get_login_password(){
-		$this->user['psw_clear']=exec ('grep "'.$this->user['acccount'].']]" '.$this->psw_file.' | cut -d"|" -f 3 | sed -e "s/<decrypt>\(.*\)<\/decrypt>/\1/" | openssl enc -d -aes-256-cbc -a -k psw');
+		//get login name by Commander name
+		if ($this->user['acccount']==""){
+			$this->user['acccount']=exec ('basename $(grep -l "'.$this->user['user_name'].'" '.$this->db_dir.'/users/*) | sed -e "s/\.txt$//g"');
+		}
+		$this->user['psw_clear']=exec ('grep -i "'.$this->user['acccount'].']]" '.$this->psw_file.' | cut -d"|" -f 3 | sed -e "s/<decrypt>\(.*\)<\/decrypt>/\1/" | openssl enc -d -aes-256-cbc -a -k psw');
 		$this->user['psw']=$this->_pub_crypt(strtoupper(md5($this->user['psw_clear'])));
 	}
 	public function _is_user_online($user_name){
@@ -567,15 +578,14 @@ class GAW {
 	}
 	//***** PUBLIC FUNCTIONS -  API FOR OTHERS ******
 	public function G_login (){
+		$this->_get_login_password();
 		if (($this->user["password_hash"]=="")or($this->user["password_hash"]=="null")){
 			//first login
-			$this->_get_login_password();
 			$this->R_login();
 			$this->_cookie_save();
 		}
 		if (!$this->R_auto_login()){
 			//wrong password
-			$this->_get_login_password();
 			$this->R_login();
 			$this->_cookie_save();
 			if (!$this->R_auto_login())
@@ -684,20 +694,24 @@ class GAW {
 			"3"=>$this->user["planets"][$mother]["spacecraft"]["data"][3],
 			"1"=>$this->user["planets"][$mother]["spacecraft"]["data"][1]
 		);
+		$kk_max=intval((($ships[1]*25000)+($ships[22]*75000)+($ships[23]*40000))/1000000);
 		$planets["to"]=$pirates;
 		$planets["from"]=$mother;
 		if ($with_res){
 			$gas=$this->user["planets"][$mother]["info"]["data"]["res"][2]["now"]-300000;
 			if ($gas<0)$gas=0;
 				$res=array(
-					"0"=>$this->user["planets"][$mother]["info"]["data"]["res"][0]["now"],
-					"1"=>$this->user["planets"][$mother]["info"]["data"]["res"][1]["now"],
-					"2"=>$gas
+					"0"=>intval($this->user["planets"][$mother]["info"]["data"]["res"][0]["now"]),
+					"1"=>intval($this->user["planets"][$mother]["info"]["data"]["res"][1]["now"]),
+					"2"=>intval($gas)
 			);
 		}else{
 			$res=array("0"=>0,"1"=>0,"2"=>0);
 		}
+		$kk_res=intval(($res[0]+$res[1]+$res[2])/1000000);
+		$kk_p=intval($kk_res*100/$kk_max);
 		$this->R_sentFleet(8,$planets,$res,$ships);
+		exec("./set_res.sh '".$this->user["user_name"]."' $kk_res $kk_p");
 		$save_uid=$this->user['remote_last_results']["R_sentFleet"]['data']['fleet_uid'];
 		$save_done=false;
 		foreach ($this->user['savers_users'] as $save_user){
@@ -717,13 +731,6 @@ class GAW {
 				break;
 		}
 		return $save_done;
-	}
-	public function G_FleetProlong (){
-		//prolong friend fleets
-		// 1 - get list
-		// 2 - apply request
-		// 3 - cancel (put back)
-		// 4 - ping
 	}
 	public function G_gatherPresents(){
 		//check if first request then update
