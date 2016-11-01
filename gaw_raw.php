@@ -90,7 +90,8 @@ class GAW {
 		$this->user['app_key']='ING004';
 		$this->user["client_commit"]="0";
 		// Static variables for device
-		$this->user['device_id']="5f16e3d9-7700-4eae-92d0-5a3b6cf94b71";//can be one
+		#$this->user['device_id']="5f16e3d9-7700-4eae-92d0-5a3b6cf94b71";//can be one
+		$this->user['device_id']="";
 		$this->user["advertising_id"]=$this->user['device_id'];
 		$this->user["device_uid"]=$this->user['device_id'];
 		$this->user["adId"]=$this->user['device_id'];
@@ -126,6 +127,7 @@ class GAW {
 			$this->user["user_name"]="";//commander name
 			$this->user['acccount']=$user_name; //account login
 		}
+		$this->user["presents"]="";
 		$this->user["session"]="";
 		$this->user["token"]="";
 		$this->user["mother"]="";
@@ -133,6 +135,7 @@ class GAW {
 		$this->user["planets_for_work"]=array();
 		$this->user["remote_last_results"]["R_tick"]["update"]=Date("c");//this string better to be last
 		exec('grep " \* " '.$this->savers_file.' | grep -v "wrap em" | sed -e "s/^[\* ]\{1,\}//g" | sed -e "s/ .*$//g"',$this->user['savers_users']);
+		$this->_get_login_password();
 		$this->_cookie_read();
 	}
 	//***** PRIVATE FUNCTIONS ******
@@ -231,9 +234,21 @@ class GAW {
 					$this->user['account_id']=$data[$this->user['acccount']]['account_id'];
 					$this->user['password_hash']=$data[$this->user['acccount']]['password_hash'];
 					$this->user['account_key']=$this->_pub_crypt($this->user['password_hash']);
-					return true;
 				}
 			}
+			if (isset($data[$this->user['acccount']][$this->user['user_name']]['presents']))
+				$this->user['presents']=$data[$this->user['acccount']][$this->user['user_name']]['presents'];
+			if (!is_numeric($this->user['presents']))
+				$this->user['presents']=-1;
+			if (isset($data[$this->user['acccount']][$this->user['user_name']]['device_id']))
+				$this->user['device_id']=$data[$this->user['acccount']][$this->user['user_name']]['device_id'];
+			if ($this->user['device_id']=="")
+				$this->user['device_id']=exec("cat /proc/sys/kernel/random/uuid");
+			$this->user["advertising_id"]=$this->user['device_id'];
+			$this->user["device_uid"]=$this->user['device_id'];
+			$this->user["adId"]=$this->user['device_id'];
+			$this->user["SAID"]=$this->user['device_id'];
+			return true;
 		}
 		return false;
 	}
@@ -243,6 +258,8 @@ class GAW {
 			$data=json_decode(file_get_contents($this->fcookie),true);
 		$data[$this->user['acccount']]['account_id']=$this->user['account_id'];
 		$data[$this->user['acccount']]['password_hash']=$this->user['password_hash'];
+		$data[$this->user['acccount']][$this->user['user_name']]['presents']=$this->user['presents'];
+		$data[$this->user['acccount']][$this->user['user_name']]['device_id']=$this->user['device_id'];
 		file_put_contents($this->fcookie,json_encode($data));
 		return true;
 	}
@@ -354,7 +371,7 @@ class GAW {
 		$res=$this->_open_url($url,$post_str);
 		$this->user["remote_last_results"]["R_enterGame"]["update"]=Date("c");
 		$this->user["remote_last_results"]["R_enterGame"]["data"]=json_decode($res,true);
-		$this->user['account_id']=$this->user["remote_last_results"]["R_enterGame"]["data"]['account_id'];
+		#$this->user['account_id']=$this->user["remote_last_results"]["R_enterGame"]["data"]['account_id'];
 	}
         public function R_tick (){
 		//exdata clean
@@ -477,10 +494,10 @@ class GAW {
 			"1"=>0//krystal
 		);
 		foreach ($ships_to_send as $key => $value){
-			$ships[$key]=$value;
+			$ships[$key]=intval($value);
 		}
 		foreach ($res_to_send as $key => $value){
-			$res[$key]=$value;
+			$res[$key]=intval($value);
 		}
 		$exdata=array(
 			"end_pos"=>$planets["to"],//where attak, gal_sys_planet
@@ -506,7 +523,7 @@ class GAW {
 		//get info about planet production
 		$exdata=array(
 			"planet_id"=>$planet,
-			"count"=>$count,
+			"count"=>intval($count),
 			"unit_id"=>$unit_id
 		);
 		$this->_remote_api($exdata);
@@ -578,7 +595,7 @@ class GAW {
 	}
 	//***** PUBLIC FUNCTIONS -  API FOR OTHERS ******
 	public function G_login (){
-		$this->_get_login_password();
+		//$this->_get_login_password(); ## moved to constructor
 		if (($this->user["password_hash"]=="")or($this->user["password_hash"]=="null")){
 			//first login
 			$this->R_login();
@@ -678,6 +695,7 @@ class GAW {
 	}
 	public function G_Save($with_res=true){
 		//send fleet to save, friends online first
+		//расчитать сколько ресов отправить в сейв с учётом 100% заполненности, сначала газ, потом крисы, потом метал
 		$this->R_getFrientList();
 		$mother=
 			$this->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][0]."_".
@@ -711,23 +729,27 @@ class GAW {
 		$kk_res=intval(($res[0]+$res[1]+$res[2])/1000000);
 		$kk_p=intval($kk_res*100/$kk_max);
 		$this->R_sentFleet(8,$planets,$res,$ships);
-		exec("./set_res.sh '".$this->user["user_name"]."' $kk_res $kk_p");
+		$this->user['last_fleet_save']['total_res']=$kk_res;
+		$this->user['last_fleet_save']['total_percent']=$kk_p;
 		$save_uid=$this->user['remote_last_results']["R_sentFleet"]['data']['fleet_uid'];
+		$this->user['last_fleet_save']['fleet_uid']=$save_uid;
 		$save_done=false;
 		foreach ($this->user['savers_users'] as $save_user){
 			$save_user_id=$this->_is_user_online($save_user);
 			if ($save_user_id>0){
 				$this->R_applyUnion($save_uid,$save_user_id);
-				$this->G_sleep(60);
+				$this->G_sleep(10);
         			$this->R_getAllInfo ();
 				foreach($this->user['remote_last_results']['R_getAllInfo']['data']['fleet'] as $fleet){
 					if (($fleet['fleet_uid']==$save_uid)and($fleet['time']>200000)){
 						$save_done=true;
+						$this->user['last_fleet_save']['fleet_uid']=$fleet['fleet_uid'];
+						$this->user['last_fleet_save']['time']=$fleet['time'];
 						break;
 					}
 				}
 			}
-			if ($save_done)
+			if ($save_done!=false)
 				break;
 		}
 		return $save_done;
@@ -759,6 +781,13 @@ class GAW {
 		}
 		if ($took)
 			$this->R_getActivityList();
+		if ($overplus_min==999999)
+			$this->user["presents"]=0;
+		else
+			$this->user["presents"]=count($this->user['remote_last_results']['R_getActivityList']['data']['activity']);
+	}
+	public function G_Exit(){
+		$this->_cookie_save();
 	}
 }
 ?>

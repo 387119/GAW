@@ -122,6 +122,7 @@ $res_max_taked=true;
 
 // подготавливаем список планет для обхода.
 echo Date("c")." определяем список планет для обхода\n";
+exec("./set_comment.sh '".$gaw->user["user_name"]."' 'подготовка'");
 foreach ($gaw->user["planets"] as $planet => $data){
 	$to_work=false;
 	if (($data["info"]["data"]["build"]["7"]["lv"]>=8)or($data["info"]["data"]["build"]["8"]["lv"]>=8)or($data["info"]["data"]["build"]["9"]["lv"]>=8))
@@ -154,9 +155,7 @@ foreach ($gaw->user["planets"] as $key => $val){
 	}
 }
 
-if ($res_max_taked==true){
-	exec("./set_res.sh '".$gaw->user["user_name"]."' сбор");
-}
+exec("./set_comment.sh '".$gaw->user["user_name"]."' 'возврат сейва'");
 
 echo  Date("c")." если достаточно то возвращаем сейв материнской планки\n";
 //при перезапуске произошёл возврат летящих грузов на другие планки, так как они посчитались как будто в сейве
@@ -210,6 +209,7 @@ if ($gaw->user["remote_last_results"]["R_getAllInfo"]["data"]["error"]==0){
 //$gaw->R_getAllInfo();//check all fleets again - send only there where to need
 
 /// ADD CHECK IF NEED FLEET TO BE SENDED TO EACH PLANET
+exec("./set_comment.sh '".$gaw->user["user_name"]."' 'отправка грузов'");
 
 echo  Date("c")." отправка грузов на удаленные планки и ожидание их долёта\n";
 while (true){
@@ -253,13 +253,68 @@ while (true){
 	}
 	if ($waittime==-1)
 		break;
+	/*
+	if ($waittime>0){
+		exec("./set_comment.sh '".$gaw->user["user_name"]."' 'Постройка грузов на лишние ресы'");
+		// дупля не кину как проверку сделать на необходимость выполнения данного пункта, надо подумать
+		if (($res_max_taked==true)and($save_with_res==true)and($send_to_save==true)){
+			//отработает пока только при правильной первой отработки скрипта
+			echo Date("c")." постройка грузов при необходимости\n";
+			$gaw->G_updatePlanetsInfo(array($mother),0);
+			$gaw->R_getSpacecraft($mother);
+			$res=$gaw->user["planets"][$mother]["info"]["data"]["res"][0]["now"]+
+				$gaw->user["planets"][$mother]["info"]["data"]["res"][1]["now"]+
+				$gaw->user["planets"][$mother]["info"]["data"]["res"][2]["now"];
+			$res=intval($res);
+			$cargo_res=($gaw->user["planets"][$mother]["spacecraft"]["data"]["22"]*75000)+
+				($gaw->user["planets"][$mother]["spacecraft"]["data"]["1"]*25000)+
+				($gaw->user["planets"][$mother]["spacecraft"]["data"]["23"]*40000);
+			$cargo_res=intval($cargo_res);
+			echo "на планке $res ресов, можно увезти $cargo_res\n";
+			if ($res>$cargo_res){
+				$newcargo=(($res-$cargo_res)/2)/6000;
+				$delta=intval($newcargo/10);
+				if ($delta<=1)$delta=10;
+				$newcargo=intval($newcargo+$delta);
+				$gaw->R_product($mother,$newcargo,1);
+				echo "need create $newcargo with delta $delta\n";
+			}
+		}
+	*/	
+		
+	echo "send main cargos to save \n";
+	exec("./set_comment.sh '".$gaw->user["user_name"]."' 'отправка сейва на время сбора...'");
+	$gaw->G_updatePlanetsInfo(array($mother),0);
+	$gaw->R_getSpacecraft($mother);
+	$res=$gaw->user["planets"][$mother]["info"]["data"]["res"][0]["now"]+
+		$gaw->user["planets"][$mother]["info"]["data"]["res"][1]["now"]+
+		$gaw->user["planets"][$mother]["info"]["data"]["res"][2]["now"];
+	$res=intval($res);
+	$cargo_res=($gaw->user["planets"][$mother]["spacecraft"]["data"]["22"]*75000)+
+		($gaw->user["planets"][$mother]["spacecraft"]["data"]["1"]*25000)+
+		($gaw->user["planets"][$mother]["spacecraft"]["data"]["23"]*40000);
+	$cargo_res=intval($cargo_res);
+	echo "на планке $res ресов, можно увезти $cargo_res\n";
+	$save_res=true;
+	if ($res>$cargo_res){
+		$save_res=false;
+	}
+	if ($save_res==true)
+		$gaw->G_Save();
+	else
+		echo "Ресы не влазят в грузы, оставляем всё на планке.";
+	exec("./set_comment.sh '".$gaw->user["user_name"]."' 'ожидание долёта грузов'");
 	echo "sleep $waittime\n";
 	$gaw->G_sleep($waittime);
 }
+//come back from save main cargos
+if ($save_res==true)
+	$gaw->R_cancelFleet($gaw->user['last_fleet_save']['fleet_uid']);
 //echo "cargo enough, we can back them to mother";
 $gaw->G_updatePlanetsInfo("all",0);
 $gaw->R_getAllInfo();
 
+exec("./set_comment.sh '".$gaw->user["user_name"]."' 'возврат грузов'");
 echo  Date("c")." возвращаем все на материнку если там ресов больше чем макс\n";
 foreach ($gaw->user["planets"] as $key => $val){
 	if ($fleetisback==false)
@@ -292,46 +347,26 @@ while (true){
 	$waittime=0;
 	if ($gaw->user["remote_last_results"]["R_getAllInfo"]["data"]["error"]==0){
 		foreach ($gaw->user["remote_last_results"]["R_getAllInfo"]["data"]["fleet"] as $val){
-			if ($val["purpose"]==7)
+			if (($val["purpose"]==7)or($val["purpose"]==1))
 				if ($val["time"]>$waittime)
 					$waittime=$val["time"];
 		}
 		echo "fleets will come in $waittime seconds, waiting...\n";
 	}
 	if ($waittime>0) 
-		$gaw->G_sleep ($waittime);
+		$gaw->G_sleep ($waittime+10);
 	else 
 		break;
 }
 
-// дупля не кину как проверку сделать на необходимость выполнения данного пункта, надо подумать
-if (($res_max_taked==true)and($save_with_res==true)and($send_to_save==true)){
-	//отработает пока только при правильной первой отработки скрипта
-	echo Date("c")." постройка грузов при необходимости\n";
-	$gaw->G_updatePlanetsInfo(array($mother),0);
-	$gaw->R_getSpacecraft($mother);
-	$res=$gaw->user["planets"][$mother]["info"]["data"]["res"][0]["now"]+
-		$gaw->user["planets"][$mother]["info"]["data"]["res"][1]["now"]+
-		$gaw->user["planets"][$mother]["info"]["data"]["res"][2]["now"];
-	$res=intval($res);
-	$cargo_res=($gaw->user["planets"][$mother]["spacecraft"]["data"]["22"]*75000)+
-		($gaw->user["planets"][$mother]["spacecraft"]["data"]["1"]*25000)+
-		($gaw->user["planets"][$mother]["spacecraft"]["data"]["23"]*40000);
-	$cargo_res=intval($cargo_res);
-	echo "на планке $res ресов, можно увезти $cargo_res\n";
-	if ($res>$cargo_res){
-		$newcargo=(($res-$cargo_res)/2)/6000;
-		$delta=intval($newcargo/10);
-		if ($delta<=1)$delta=10;
-		$newcargo=$newcargo+$delta;
-		$gaw->R_product($mother,$newcargo,1);
-		echo "need create $newcargo with delta $delta\n";
-	}
-}
-
 /// SAVE!!!!
 if ($send_to_save==true)
-	$gaw->G_Save($save_with_res);
+	$gaw->G_updatePlanetsInfo(array($mother),0);
+	$gaw->R_getSpacecraft($mother);
+	exec("./set_comment.sh '".$gaw->user["user_name"]."' 'отправка в сейв...'");
+	$gaw->G_Save($save_res);
+	exec("./set_comment.sh '".$gaw->user["user_name"]."' '".time()."'");
+	exec("./set_res.sh '".$gaw->user["user_name"]."' ".$gaw->user['last_fleet_save']['total_res']." ".$gaw->user['last_fleet_save']['total_percent']);
 // set finish to log
 inlog("STOP: $user / $save / ".Date("c"));
 #echo "--------------------\n";
