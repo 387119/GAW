@@ -44,6 +44,11 @@ class GAW {
 		"R_getRadarFleets"=>"nmFleet/getRadarFleets", // get fleets in radar
 		"R_getInviteUnionFleets"=>"nmFleet/getInviteUnionFleets", // list friend requests fleet for save
 		"R_agreeUnionFleet"=>"nmFleet/agreeUnionFleet", // save friend fleet
+		"R_getPlanetQuardInfo"=>"nmFleet/getPlanetQuardInfo", //?
+		"R_pushResBank" =>"nmBuild/pushResBank", //
+		"R_overLooker"=>"nmFleet/overLooker",
+		"R_getMailList"=>"nmMail/getMailList",
+		"R_getMailInfo"=>"nmMail/getMailInfo",
 		"nmBuild/refresh",
 		"nmPlanet/getPlanetInfo",// - 33 switch to planet
 		// maybe need
@@ -519,6 +524,19 @@ class GAW {
 		);
 		$this->_remote_api($exdata);
 	}
+        public function R_getMailList (){
+		//
+		$exdata=array();
+		$this->_remote_api($exdata);
+	}
+        public function R_getMailInfo ($mail_uid,$type){
+		//
+		$exdata=array(
+			"mail_uid"=>$mail_uid,
+			"type"=>$type
+		);
+		$this->_remote_api($exdata);
+	}
         public function R_product ($planet,$count,$unit_id){
 		//get info about planet production
 		$exdata=array(
@@ -590,6 +608,29 @@ class GAW {
 			),
 			"rate"=>10,
 			"fleet_uid"=>$fleet_uid
+		);
+		$this->_remote_api($exdata);
+	}
+        public function R_overLooker ($planet){
+		// ?
+		$exdata=array(
+			"planet_id"=>$planet
+		);
+		$this->_remote_api($exdata);
+	}
+        public function R_getPlanetQuardInfo ($planet){
+		// ?
+		$exdata=array(
+			"planet_id"=>$planet
+		);
+		$this->_remote_api($exdata);
+	}
+        public function R_pushResBank ($planet,$res_id,$count){
+		// ?
+		$exdata=array(
+			"planet_id"=>$planet,
+			"res_id"=>$res_id,
+			"count"=>$count
 		);
 		$this->_remote_api($exdata);
 	}

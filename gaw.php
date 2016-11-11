@@ -117,7 +117,7 @@ $mother=
 	$gaw->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][1]."_".
 	$gaw->user["remote_last_results"]["R_getUserPlanetList"]["data"]["mother_position"][2];
 //check if enough resources on planets
-$res_max=900000;
+$res_max=0;
 $res_max_taked=true;
 
 // подготавливаем список планет для обхода.
