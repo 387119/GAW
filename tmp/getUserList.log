@@ -1,0 +1,516 @@
+Array
+(
+    [error] => 0
+    [count] => 23
+    [users] => Array
+        (
+            [0] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 549ffa0eaa616ef06e8b8296
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 57
+                            [exp] => 9296.7905
+                            [exp_max] => 140539
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 7
+                    [personal_score] => 508265
+                    [server_id] => 84
+                    [user_id] => 20039396084
+                    [user_name] => bolbes
+                )
+
+            [1] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54a03548bffc9479458b86c9
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 42
+                            [exp] => 4210.231
+                            [exp_max] => 10705
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 5
+                    [personal_score] => 136226
+                    [server_id] => 83
+                    [user_id] => 20039396083
+                    [user_name] => MikRob5
+                )
+
+            [2] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 5532f667fefb94ac108bb774
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 15
+                            [exp] => 104.6
+                            [exp_max] => 317
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 2202
+                    [server_id] => 96
+                    [user_id] => 20200312096
+                    [user_name] => NewRussian
+                )
+
+            [3] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 549c5f758ce5d0a15a8baf51
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 66
+                            [exp] => 282714.7445
+                            [exp_max] => 421648
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 3767049
+                    [server_id] => 84
+                    [user_id] => 20200312084
+                    [user_name] => ТauRus
+                )
+
+            [4] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54be2a148ce5d0da268b841e
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 28
+                            [exp] => 2567.215
+                            [exp_max] => 2765
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 29866
+                    [server_id] => 88
+                    [user_id] => 20200312088
+                    [user_name] => NewSeychelles
+                )
+
+            [5] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54f24c653ee8826d578b6197
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 37
+                            [exp] => 3737.205
+                            [exp_max] => 7248
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 5
+                    [personal_score] => 61478
+                    [server_id] => 86
+                    [user_id] => 20200312086
+                    [user_name] => Mikrob4
+                )
+
+            [6] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 549eea85aa616ed36f8b5efa
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 75
+                            [exp] => 1082122.2895
+                            [exp_max] => 1699683
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 4
+                    [personal_score] => 14033228
+                    [server_id] => 84
+                    [user_id] => 20217399084
+                    [user_name] => ElNat
+                )
+
+            [7] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54bfa232aa616e1d3d8b6a8f
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 16
+                            [exp] => 230.874
+                            [exp_max] => 355
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 2931
+                    [server_id] => 88
+                    [user_id] => 20217399088
+                    [user_name] => Dog_1
+                )
+
+            [8] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54bfa3558ce5d0714d8b51e2
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 23
+                            [exp] => 585.844
+                            [exp_max] => 1490
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 3630
+                    [server_id] => 87
+                    [user_id] => 20217399087
+                    [user_name] => mikrob8
+                )
+
+            [9] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54bfa3ad2be5d0f7328b632a
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 38
+                            [exp] => 7485.168
+                            [exp_max] => 7776
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 5
+                    [personal_score] => 51736
+                    [server_id] => 86
+                    [user_id] => 20217399086
+                    [user_name] => MikRob2
+                )
+
+            [10] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54bfa3de2be5d068358b56c0
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 38
+                            [exp] => 5737.466
+                            [exp_max] => 7776
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 5
+                    [personal_score] => 56994
+                    [server_id] => 85
+                    [user_id] => 20217399085
+                    [user_name] => MikRob3
+                )
+
+            [11] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54bfa58a8ce5d09d2d8b8e8c
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 51
+                            [exp] => 29346.738
+                            [exp_max] => 31774
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 1
+                    [personal_score] => 330026
+                    [server_id] => 83
+                    [user_id] => 20217399083
+                    [user_name] => 387119
+                )
+
+            [12] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 5509324dfefb94d0608bce9f
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 1
+                            [exp] => 0
+                            [exp_max] => 2
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 0
+                    [server_id] => 94
+                    [user_id] => 20536172094
+                    [user_name] => Epifanov
+                )
+
+            [13] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 5533e57ffefb9416398b5aa4
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 1
+                            [exp] => 0
+                            [exp_max] => 2
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 0
+                    [server_id] => 96
+                    [user_id] => 20536172096
+                    [user_name] => Epifanov95_0
+                )
+
+            [14] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54d3fc812be5d0033e8b61d5
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 53
+                            [exp] => 51973.5355
+                            [exp_max] => 52158
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 6
+                    [personal_score] => 403215
+                    [server_id] => 84
+                    [user_id] => 20536172084
+                    [user_name] => Еpifanov
+                )
+
+            [15] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 550931dffefb94d1608bc19e
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 6
+                            [exp] => 24.915
+                            [exp_max] => 41
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 174
+                    [server_id] => 89
+                    [user_id] => 20536172089
+                    [user_name] => Mikrob6
+                )
+
+            [16] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 550932fc46fde2b07b8b7685
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 6
+                            [exp] => 10.946
+                            [exp_max] => 41
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 163
+                    [server_id] => 87
+                    [user_id] => 20536172087
+                    [user_name] => mikrob9
+                )
+
+            [17] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 550da961cbe4d0587b8bbeba
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 1
+                            [exp] => 0
+                            [exp_max] => 2
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 0
+                    [server_id] => 94
+                    [user_id] => 20539559094
+                    [user_name] => sigon
+                )
+
+            [18] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54d5f413bffc94b51b8b65f8
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 61
+                            [exp] => 61143.809
+                            [exp_max] => 285253
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 6
+                    [personal_score] => 1985921
+                    [server_id] => 84
+                    [user_id] => 20539559084
+                    [user_name] => MikRob
+                )
+
+            [19] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54e9eb2f3ee882536d8bb36a
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 37
+                            [exp] => 526.007
+                            [exp_max] => 7248
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 0
+                    [personal_score] => 82512
+                    [server_id] => 88
+                    [user_id] => 20539559088
+                    [user_name] => mikrob7
+                )
+
+            [20] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 54fb03283ee882cd0b8b6b94
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 58
+                            [exp] => 99778.8185
+                            [exp_max] => 180060
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 6
+                    [personal_score] => 1255506
+                    [server_id] => 83
+                    [user_id] => 20539559083
+                    [user_name] => G20217399S92
+                )
+
+            [21] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 5552ebb43ee88295548ba836
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 57
+                            [exp] => 80432.3
+                            [exp_max] => 140539
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 6
+                    [personal_score] => 1000193
+                    [server_id] => 85
+                    [user_id] => 20539559085
+                    [user_name] => MikRob1
+                )
+
+            [22] => Array
+                (
+                    [_id] => Array
+                        (
+                            [$id] => 555cf3c33ee88277228b89b9
+                        )
+
+                    [commander_info] => Array
+                        (
+                            [level] => 46
+                            [exp] => 15.599000000002
+                            [exp_max] => 15017
+                        )
+
+                    [facebook_id] => 1423401107981355
+                    [icon_id] => 7
+                    [personal_score] => 231625
+                    [server_id] => 83
+                    [user_id] => 20893853083
+                    [user_name] => ElMar
+                )
+
+        )
+
+)
+

@@ -19,8 +19,15 @@ else{
 }
 if ($do==true){
 	$gaw->G_login();
+	$planets=$gaw->user['remote_last_results']['R_getGameDataEx']['data']['planet_count'];
+	$laba=$gaw->user['remote_last_results']['R_getGameDataEx']['data']['tec_info']['11']['lv'];
+	$mmore=intval($laba/2)-$planets+1;
+	echo "planet_tech: $planets/$laba/$mmore\n";
 	$gaw->R_getAllInfo();
 	$gaw->R_getFrientList();
+        $gaw->G_updatePlanetsInfo("all",0);                                                                                                   
+        echo "planets: ".implode(',',array_keys($gaw->user['planets']))."\n";                                                                 
+
 	foreach ($gaw->user['remote_last_results']['R_getAllInfo']['data']['fleet'] as $fleet){
 		if (($fleet['time']<400000)and ($fleet['purpose']==9)and ($fleet['target']['2']>=17)){
 	                foreach ($gaw->user['savers_users'] as $save_user){

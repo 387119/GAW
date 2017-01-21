@@ -3,8 +3,9 @@ set_include_path(get_include_path() . PATH_SEPARATOR . 'phpseclib');
 include('Crypt/RSA.php');
 
 
-class GAW {
+class GAW_RAW {
 	public $DEBUG=4;// 1 - ERROR, 2 - WARNING, 3 - INFO, 4 - DEBUG1, 5 - DEBUG2, 6 - DEBUG3
+	public $EXIT_ON_ERROR=false;
 	private $hosts=array(
 		"spx"=>'54.183.10.158',                 // "/spx_*"
 		"ing"=>'ing0042.sphinxjoy.net'         // "/ING*"
@@ -49,6 +50,7 @@ class GAW {
 		"R_overLooker"=>"nmFleet/overLooker",
 		"R_getMailList"=>"nmMail/getMailList",
 		"R_getMailInfo"=>"nmMail/getMailInfo",
+		"R_applyQuard"=>"nmFleet/applyQuard",//invite friend to local planet
 		"nmBuild/refresh",
 		"nmPlanet/getPlanetInfo",// - 33 switch to planet
 		// maybe need
@@ -106,11 +108,12 @@ class GAW {
 		$this->user["device_os_version"]="4.4.4";
 		#$this->user["device_detail_type"]="Lenovo TAB 2 A10-70F";
 		// Variables for game (can be changed by game)
-		$this->user["sdk_ver"]="0191";
+		$this->user["sdk_ver"]="0200";
+#		$this->user["sdk_ver"]="0191";
 		#$this->user["spx_did"]=1452143;
 		$this->user["spx_did"]=198165;
 		$this->user["spx_id"]=$this->user["spx_did"];
-		$this->user["server_id"]=91;
+		$this->user["server_id"]=101;
 		$this->user["pkg_version"]="1.8.1";
 		// Dynamic user variables
 		$this->user['account_id']=""; //account id (need find where to get it)
@@ -208,16 +211,19 @@ class GAW {
 	}
 	private function _analyze_error ($func){
 		$error=$this->user["remote_last_results"][$func]["data"]["error"];
-		if (($error!=0)and($error != 1229))
-			die("error in request $func \n".
-				"GET: ".json_encode($this->user["remote_last_results"][$func]["request"]["get"])."\n".
-				"POST: ".json_encode($this->user["remote_last_results"][$func]["request"]["post"])."\n".
-				"RES: ".json_encode($this->user["remote_last_results"][$func]["data"])."\n");
+		if (($error!=0)and($error != 1229)){
+			print_r($this->user);
+			if ($this->EXIT_ON_ERROR==true)
+				die("error in request $func \n".
+					"GET: ".json_encode($this->user["remote_last_results"][$func]["request"]["get"])."\n".
+					"POST: ".json_encode($this->user["remote_last_results"][$func]["request"]["post"])."\n".
+					"RES: ".json_encode($this->user["remote_last_results"][$func]["data"])."\n");
+		}
 	}
 	private function _remote_api ($exdata){
 		$debug=debug_backtrace();
 		$func=$debug["1"]["function"];
-		if ($this->DEBUG>=4) echo "CALL: $func\n";
+		if ($this->DEBUG>=4) echo date("c")." CALL: $func\n";
 		$url="http://".$this->hosts["ing"].$this->root_url."/".$this->urls[$func];
 		$common_data=$this->_common_data();
 		$url=$url."?sign=".$this->_getSign($exdata);
@@ -273,7 +279,7 @@ class GAW {
 		if ($this->user['acccount']==""){
 			$this->user['acccount']=exec ('basename $(grep -l "'.$this->user['user_name'].'" '.$this->db_dir.'/users/*) | sed -e "s/\.txt$//g"');
 		}
-		$this->user['psw_clear']=exec ('grep -i "'.$this->user['acccount'].']]" '.$this->psw_file.' | cut -d"|" -f 3 | sed -e "s/<decrypt>\(.*\)<\/decrypt>/\1/" | openssl enc -d -aes-256-cbc -a -k psw');
+		$this->user['psw_clear']=exec ('grep -i "'.$this->user['acccount'].']]" '.$this->psw_file.' | head -1 | cut -d"|" -f 3 | sed -e "s/<decrypt>\(.*\)<\/decrypt>/\1/" | openssl enc -d -aes-256-cbc -a -k psw');
 		$this->user['psw']=$this->_pub_crypt(strtoupper(md5($this->user['psw_clear'])));
 	}
 	public function _is_user_online($user_name){
@@ -634,6 +640,16 @@ class GAW {
 		);
 		$this->_remote_api($exdata);
 	}
+        public function R_applyQuard ($planet,$user_id){
+		// invite user to local planet
+		$exdata=array(
+			"planet_id"=>$planet,
+			"target_user_id_array"=>array(
+				"0"=>$user_id
+			)
+		);
+		$this->_remote_api($exdata);
+	}
 	//***** PUBLIC FUNCTIONS -  API FOR OTHERS ******
 	public function G_login (){
 		//$this->_get_login_password(); ## moved to constructor
@@ -670,7 +686,8 @@ class GAW {
 		if ($doping==true){
 			$this->R_tick();
 			$this->R_getGameDataEx();
-			$this->G_gatherPresents();
+			if ($this->user['remote_last_results']['R_getGameDataEx']['data']['gift_state']==1)
+				$this->G_gatherPresents();
 		}
 	}
 	public function G_updatePlanetsInfo($what_check,$delay){
@@ -753,20 +770,31 @@ class GAW {
 			"3"=>$this->user["planets"][$mother]["spacecraft"]["data"][3],
 			"1"=>$this->user["planets"][$mother]["spacecraft"]["data"][1]
 		);
+		$leave_gaz=((intval($ships['22']/100)+1)*2500)+((intval($ships['23']/100)+1)*2000)+((intval($ships['3']/100)+1)*2000)+((intval($ships['1']/100)+1)*1500)+100000;
+		$res_max=intval((($ships[1]*25000)+($ships[22]*75000)+($ships[23]*40000)));
 		$kk_max=intval((($ships[1]*25000)+($ships[22]*75000)+($ships[23]*40000))/1000000);
 		$planets["to"]=$pirates;
 		$planets["from"]=$mother;
-		if ($with_res){
-			$gas=$this->user["planets"][$mother]["info"]["data"]["res"][2]["now"]-300000;
-			if ($gas<0)$gas=0;
+		$gas=$this->user["planets"][$mother]["info"]["data"]["res"][2]["now"]-$leave_gaz;
+		if ($gas<0)$gas=0;
+		if ($with_res==true){
 				$res=array(
 					"0"=>intval($this->user["planets"][$mother]["info"]["data"]["res"][0]["now"]),
 					"1"=>intval($this->user["planets"][$mother]["info"]["data"]["res"][1]["now"]),
 					"2"=>intval($gas)
-			);
+				);
 		}else{
-			$res=array("0"=>0,"1"=>0,"2"=>0);
+			if ($gas>=$leave_gaz)
+				$gas=$leave_gaz;
+			$res=array("0"=>0,"1"=>0,"2"=>intval($gas));
 		}
+                for ($rr=0;$rr<=2;$rr++){
+                        if (($res[0]+$res[1]+$res[2])>$res_max){
+                                $res[$rr]=$res[$rr]-(($res[0]+$res[1]+$res[2])-$res_max);
+                                if ($res[$rr]<0)$res[$rr]=0;
+                                else break;
+                        }
+                }
 		$kk_res=intval(($res[0]+$res[1]+$res[2])/1000000);
 		$kk_p=intval($kk_res*100/$kk_max);
 		$this->R_sentFleet(8,$planets,$res,$ships);
@@ -797,35 +825,15 @@ class GAW {
 	}
 	public function G_gatherPresents(){
 		//check if first request then update
-		if (!isset($this->user['remote_last_results']['R_getActivityList']))
-			$this->R_getActivityList();
-		//find minimal overplus
-		$overplus_min=999999;
-		foreach ($this->user['remote_last_results']['R_getActivityList']['data']['activity'] as $val){
-			if ($val['overplus']<$overplus_min)
-				$overplus_min=$val['overplus'];
-		}
-		$next=time($this->user['remote_last_results']['R_getActivityList']['update'])+$overplus_min;
-		echo Date("c")." overplus_min:$overplus_min , last ".$this->user['remote_last_results']['R_getActivityList']['update']." , next ".Date("c",$next)."\n";
-		//check if update + overplus_min <= now then new update
-		if (strtotime($this->user['remote_last_results']['R_getActivityList']['update'])+$overplus_min<=time()){
-			$this->R_getActivityList();
-		}
-		//look and take where overplus=0 and new update
-		$took=false;
-		foreach ($this->user['remote_last_results']['R_getActivityList']['data']['activity'] as $val){
-			if ($val['overplus']==0){
-				echo "take present number ".$val['receive_id']."\n";
-				$this->R_getActivityReward($val['activity_id']);
-				$took=true;
-			}
-		}
-		if ($took)
-			$this->R_getActivityList();
-		if ($overplus_min==999999)
-			$this->user["presents"]=0;
-		else
-			$this->user["presents"]=count($this->user['remote_last_results']['R_getActivityList']['data']['activity']);
+                $this->R_getActivityList();
+                if (isset($this->user['remote_last_results']['R_getActivityList']['data']['activity'])){
+                        foreach ($this->user['remote_last_results']['R_getActivityList']['data']['activity'] as $val){
+                                if ($val['state']==1){
+                                        echo "take present number ".$val['text']['title']."\n";
+                                        $this->R_getActivityReward($val['activity_id']);
+                                }
+                        }
+                }
 	}
 	public function G_Exit(){
 		$this->_cookie_save();

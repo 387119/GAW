@@ -7,7 +7,7 @@ problems
 include "gaw_raw.php";
 $gaw=new GAW("aurum911");
 #$gaw=new GAW("387119","ElNat");
-$planets=array("1_286_6","220_355_15");
+$planets=array("1_518_15","269_521_15");
 $save_uid=array();
 $save_when=30;
 $gaw->G_login();
