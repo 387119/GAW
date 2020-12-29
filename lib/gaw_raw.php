@@ -1,5 +1,5 @@
 <?php
-set_include_path(get_include_path() . PATH_SEPARATOR . 'phpseclib');
+set_include_path(dirname(__FILE__).'/phpseclib');
 require('Crypt/RSA.php');
 /*
 	Входящие параметры которые может принимать R_Init на вход
