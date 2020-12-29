@@ -113,11 +113,11 @@ class GAW_RAW {
 	}
 	private function __pub_crypt ($text){
 		$ciphertext = $this->crypt->encrypt($text);
-	 	return base64_encode($ciphertext);
+		return base64_encode($ciphertext);
 	}
 	private function __pub_decrypt ($ciphertext){
 		$text = $this->crypt->decrypt($ciphertext);
-	 	return $text;
+		return $text;
 	}
 	private function __common_data(){
 		$common_data=array(
@@ -394,13 +394,13 @@ class GAW_RAW {
 				$urltype="root";
 				if (!isset($data["pd"]))
 					$data['pd']=array();
-		                $post="pd=".json_encode($data["pd"],JSON_FORCE_OBJECT);
+				$post="pd=".json_encode($data["pd"],JSON_FORCE_OBJECT);
 				break;
 			case "api_account":
 				$urltype="spx";
 				if (!isset($data["pd"]))
 					$data['pd']=array();
-		                $post="pd=".json_encode($data["pd"],JSON_FORCE_OBJECT);
+				$post="pd=".json_encode($data["pd"],JSON_FORCE_OBJECT);
 				break;
 			case "":
 				$urltype="";
@@ -410,13 +410,13 @@ class GAW_RAW {
 				$urltype="ing";
 				if (!isset($data["data"]))
 					$data['data']=array();
-		                $post="common_data=".json_encode($common_data)."&data=".json_encode($data["data"],JSON_FORCE_OBJECT);
+				$post="common_data=".json_encode($common_data)."&data=".json_encode($data["data"],JSON_FORCE_OBJECT);
 				break;
 			default:
 				$urltype="ing";
 				if (!isset($data["ex_data"]))
 					$data['ex_data']=array();
-		                $post="user_id=".$this->user['game_data']["user_id"]."&user_name=".$this->user["user_name"]."&common_data=".json_encode($common_data)."&ex_data=".json_encode($data['ex_data'],JSON_FORCE_OBJECT)."&type=1";
+				$post="user_id=".$this->user['game_data']["user_id"]."&user_name=".$this->user["user_name"]."&common_data=".json_encode($common_data)."&ex_data=".json_encode($data['ex_data'],JSON_FORCE_OBJECT)."&type=1";
 				$sign="?sign=".$this->__getSign($data['ex_data']);
 				break;
 		}
