@@ -13,13 +13,13 @@ include "../lib/gaw.php";
 */
 function update_alliance_list(){
 	global $gaw;
-	$gaw->R_Remote('nmAlliance/getAlliancesInfo',array("ex_data"=>array("start"=>0,"count"=>30)));
+	$gaw->R_Remote('nmAlliance/getAlliancesInfo',array("ex_data"=>array("start"=>0,"count"=>100)));
 	$sql="";
 	foreach ($gaw->user['remote']['nmAlliance/getAlliancesInfo']['response']['data']['info'] as $a){
 		$sql.="insert into bots.bot8_alliances (server_id,alliance_name,leader_id,leader_name,score,last_update,marker_update) 
-			values (".$gaw->user['game_data']['server_id'].",'".$a['alliance_name']."',".$a['leader_id'].",'".$a['leader_name']."',".$a['score'].",CURRENT_TIMESTAMP,null)
+			values (".$gaw->user['game_data']['server_id'].",'".str_replace("'","''",$a['alliance_name'])."',".$a['leader_id'].",'".str_replace("'","''",$a['leader_name'])."',".$a['score'].",CURRENT_TIMESTAMP,null)
 			on conflict (server_id,alliance_name)
-			do update set leader_id=".$a['leader_id'].",leader_name='".$a['leader_name']."',score=".$a['score'].",last_update=CURRENT_TIMESTAMP;\n";
+			do update set leader_id=".$a['leader_id'].",leader_name='".str_replace("'","''",$a['leader_name'])."',score=".$a['score'].",last_update=CURRENT_TIMESTAMP;\n";
 	}
 	pg_query($gaw->db,$sql);
 }
@@ -37,9 +37,9 @@ function update_alliance_members($alliance_name){
 		}
 		$last_online=$m['heart_value']*$sd;
 		$sql.="insert into bots.bot8_members (server_id,alliance_name,user_id,user_name,vip_lv,commander_lv,score,last_online,last_update) 
-			values (".$gaw->user['game_data']['server_id'].",'$alliance_name',".$m['user_id'].",'".$m['user_name']."',".$m['vip_lv'].",".$m['commander_lv'].",".$m['score'].",$last_online,CURRENT_TIMESTAMP)
+			values (".$gaw->user['game_data']['server_id'].",'$alliance_name',".$m['user_id'].",'".str_replace("'","''",$m['user_name'])."',".$m['vip_lv'].",".$m['commander_lv'].",".$m['score'].",$last_online,CURRENT_TIMESTAMP)
 			on conflict (server_id,alliance_name,user_id)
-			do update set user_name='".$m['user_name']."',vip_lv=".$m['vip_lv'].",commander_lv=".$m['commander_lv'].",score=".$m['score'].",last_online=$last_online,last_update=CURRENT_TIMESTAMP;
+			do update set user_name='".str_replace("'","''",$m['user_name'])."',vip_lv=".$m['vip_lv'].",commander_lv=".$m['commander_lv'].",score=".$m['score'].",last_online=$last_online,last_update=CURRENT_TIMESTAMP;
 			update bots.bot8_alliances set member_update=now() where server_id=".$gaw->user['game_data']['server_id']." and alliance_name='$alliance_name';\n";
 	}
 	$sql.="delete from bots.bot8_members where server_id=".$gaw->user['game_data']['server_id']." and alliance_name='$alliance_name' and last_update < CURRENT_TIMESTAMP - interval '20 sec';";
@@ -50,6 +50,7 @@ function update_alliance_members($alliance_name){
 #$user="21518698101";//btt10453671 - Oracle
 $user=$argv[1];
 $gaw=new GAW();
+$gaw->EXIT_ON_ERROR=true;
 $gaw->G_InitId($user);
 $gaw->G_Login();
 update_alliance_list();
@@ -58,7 +59,7 @@ while (true){
 	$resf=pg_fetch_all($res);
 	if ((count($resf)>0)and(is_array($resf))){
 		foreach($resf as $a){
-			update_alliance_members($a['alliance_name']);
+			update_alliance_members(str_replace("'","''",$a['alliance_name']));
 		}
 	}
 	$gaw->G_Sleep(5);
