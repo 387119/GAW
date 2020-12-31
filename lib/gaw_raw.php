@@ -6,7 +6,7 @@ define ("G_WARNING",3);
 define ("G_ERROR",4);
 define ("G_FATAL",5);
 
-set_include_path(get_include_path() . PATH_SEPARATOR . 'phpseclib');
+set_include_path(dirname(__FILE__).'/phpseclib');
 require('Crypt/RSA.php');
 require('Crypt/RC4.php');
 /*
@@ -525,13 +525,13 @@ class GAW_RAW {
 				$urltype="root";
 				if (!isset($data["pd"]))
 					$data['pd']=array();
-		                $post="pd=".json_encode($data["pd"],JSON_FORCE_OBJECT);
+				$post="pd=".json_encode($data["pd"],JSON_FORCE_OBJECT);
 				break;
 			case "api_account":
 				$urltype="spx";
 				if (!isset($data["pd"]))
 					$data['pd']=array();
-		                $post="pd=".json_encode($data["pd"],JSON_FORCE_OBJECT);
+				$post="pd=".json_encode($data["pd"],JSON_FORCE_OBJECT);
 				break;
 			case "":
 				$urltype="";
@@ -541,13 +541,13 @@ class GAW_RAW {
 				$urltype="ing";
 				if (!isset($data["data"]))
 					$data['data']=array();
-		                $post="common_data=".json_encode($common_data)."&data=".json_encode($data["data"],JSON_FORCE_OBJECT);
+				$post="common_data=".json_encode($common_data)."&data=".json_encode($data["data"],JSON_FORCE_OBJECT);
 				break;
 			default:
 				$urltype="ing";
 				if (!isset($data["ex_data"]))
 					$data['ex_data']=array();
-		                $post="user_id=".$this->user['game_data']["user_id"]."&user_name=".$this->user['game_data']["user_name"]."&common_data=".json_encode($common_data)."&ex_data=".json_encode($data['ex_data'],JSON_FORCE_OBJECT)."&type=1";
+				$post="user_id=".$this->user['game_data']["user_id"]."&user_name=".$this->user['game_data']["user_name"]."&common_data=".json_encode($common_data)."&ex_data=".json_encode($data['ex_data'],JSON_FORCE_OBJECT)."&type=1";
 				$sign="?sign=".$this->__getSign($data['ex_data']);
 				break;
 		}

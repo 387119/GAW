@@ -1,5 +1,5 @@
 <?php
-set_include_path(get_include_path() . PATH_SEPARATOR . '.');
+set_include_path(dirname(__FILE__));
 include('gaw_raw.php');
 
 class GAW extends GAW_RAW{
@@ -9,12 +9,12 @@ class GAW extends GAW_RAW{
 	public $cfg=array(
 		"user_id"=>"",
 		"user_name"=>"",
-		"server_id"=>"101"
+		"server_id"=>"163"
 	);
-        public function __construct(){
+	public function __construct(){
 		//initialization
 		parent::__construct();
-                $this->db=pg_connect("host=localhost port=5432 dbname=gaw user=gaw password=gaw") or die('connection to db failed');
+		$this->db=pg_connect("host=localhost port=5432 dbname=gaw user=gaw password=gaw") or die('connection to db failed');
 	}
 	//****** INTERNAL FUNCTION ********
 	private function _pre_get_account(){
@@ -32,7 +32,7 @@ class GAW extends GAW_RAW{
 			$this->cfg['password_hash']=$resf[0]['password_hash'];
 		}
 	}
-        private function _pre_get_device(){
+private function _pre_get_device(){
 		if ($this->cfg['user_id']!="")
 			$filter="user_id='".$this->cfg['user_id']."'";
 		elseif (($this->cfg['user_name']!="")and($this->cfg['server_id']!=""))
@@ -112,67 +112,67 @@ class GAW extends GAW_RAW{
 		return $ret;
 	}
 	public function _get_savers(){
-                $res=pg_query($this->db,'select user_id,user_name from users where type=5 and enabled=true and server_id='.$this->user['game_data']['server_id'].';');
-                $this->user['savers']=pg_fetch_all($res);
-        }
-        public function _get_login_password(){
-                //get login name by Commander name
-                $res=pg_query($this->db,"select passwd,account_id,password_hash from accounts where acccount='".$this->user['game_data']['acccount']."';");
-                $resf=pg_fetch_array($res,NULL);
-                if (count($resf)>0){
-                        $this->user['game_data']['psw_clear']=$resf['passwd'];
-                        $this->user['game_data']['password_hash']=$resf['password_hash'];
-                        $this->user['game_data']['account_id']=$resf['account_id'];
-                        $this->_setup_password();
-                }else{
-                        $this->user['game_data']['psw_clear']="";
-                        $this->user['game_data']['password_hash']="";
-                        $this->user['game_data']['account_id']="";
-                        $this->user['game_data']['psw']="";
-                        $this->user['game_data']['account_key']="";
-                }
-        }
-        public function _sync_planets_to_db (){
-                //update info about planets in db
+		$res=pg_query($this->db,'select user_id,user_name from users where type=5 and enabled=true and server_id='.$this->user['game_data']['server_id'].';');
+		$this->user['savers']=pg_fetch_all($res);
+	}
+	public function _get_login_password(){
+		//get login name by Commander name
+		$res=pg_query($this->db,"select passwd,account_id,password_hash from accounts where acccount='".$this->user['game_data']['acccount']."';");
+		$resf=pg_fetch_array($res,NULL);
+		if (count($resf)>0){
+			$this->user['game_data']['psw_clear']=$resf['passwd'];
+			$this->user['game_data']['password_hash']=$resf['password_hash'];
+			$this->user['game_data']['account_id']=$resf['account_id'];
+			$this->_setup_password();
+		}else{
+			$this->user['game_data']['psw_clear']="";
+			$this->user['game_data']['password_hash']="";
+			$this->user['game_data']['account_id']="";
+			$this->user['game_data']['psw']="";
+			$this->user['game_data']['account_key']="";
+		}
+	}
+	public function _sync_planets_to_db (){
+		//update info about planets in db
 		$pos_all=array();
-                foreach($this->user['planets'] as $pos => $pl){
+		foreach($this->user['planets'] as $pos => $pl){
 			$pos_all[]=$pos;
 			if (isset($pl['list']['data'])){
 				$d=$pl['list']['data'];
-	                        $size=json_encode(array("now"=>$d['size']['now'],"max"=>$d['size']['max']));
-	                        if ($pos==$this->user['mother']) $m="true";
-	                        else $m="false";
+				$size=json_encode(array("now"=>$d['size']['now'],"max"=>$d['size']['max']));
+				if ($pos==$this->user['mother']) $m="true";
+				else $m="false";
 				$apos=explode ('_',$pos);
-	                        pg_query("insert into planets 
-	                                        (server_id,position,gal,sys,pos,planet_name,mother,user_id,temp,size,skin_id) 
-	                                values (".$this->user['game_data']['server_id'].",'".$pos."',".$apos[0].",".$apos[1].",".$apos[2].",'".$d['name']."',$m,".$this->user['game_data']['user_id'].",".$d['temperature'].",'$size',".$d['skin_id'].")
-	                                on conflict (server_id,position)
-	                                do update set last_list_update=now(),planet_name='".$d['name']."',mother=$m,user_id=".$this->user['game_data']['user_id'].",temp=".$d['temperature'].",size='$size',skin_id=".$d['skin_id'].";");
-                        }
-			if (isset($pl['info']['data'])){
-                                $i=$pl['info']['data'];
-       	                        $res=json_encode(array(intval($i['res'][0]['now']),intval($i['res'][1]['now']),intval($i['res'][2]['now'])),JSON_FORCE_OBJECT);
-               	                $power=json_encode(array("now"=>$i['power']['now'],"max"=>$i['power']['max']));
-                       	        $abuild=array();
-                               	foreach($i['build'] as $key=>$val){
-                                        $abuild[$key]=$val['lv'];
-       	                        }
-               	                $build=json_encode($abuild,JSON_FORCE_OBJECT);
-                       	        $aspacecraft=array();
-                               	foreach($i['spacecraft'] as $key=>$val){
-                                        $aspacecraft[$key]=$val['count'];
-       	                        }
-               	                $spacecraft=json_encode($aspacecraft,JSON_FORCE_OBJECT);
-                       	        pg_query("update planets set last_detail_update=now(),res='$res',power='$power',build='$build',spacecraft='$spacecraft' where position='$pos' and server_id=".$this->user['game_data']['server_id'].";");
+				pg_query("insert into planets 
+					(server_id,position,gal,sys,pos,planet_name,mother,user_id,temp,size,skin_id) 
+					values (".$this->user['game_data']['server_id'].",'".$pos."',".$apos[0].",".$apos[1].",".$apos[2].",'".$d['name']."',$m,".$this->user['game_data']['user_id'].",".$d['temperature'].",'$size',".$d['skin_id'].")
+					on conflict (server_id,position)
+					do update set last_list_update=now(),planet_name='".$d['name']."',mother=$m,user_id=".$this->user['game_data']['user_id'].",temp=".$d['temperature'].",size='$size',skin_id=".$d['skin_id'].";");
 			}
-                }
+			if (isset($pl['info']['data'])){
+				$i=$pl['info']['data'];
+				$res=json_encode(array(intval($i['res'][0]['now']),intval($i['res'][1]['now']),intval($i['res'][2]['now'])),JSON_FORCE_OBJECT);
+				$power=json_encode(array("now"=>$i['power']['now'],"max"=>$i['power']['max']));
+				$abuild=array();
+				foreach($i['build'] as $key=>$val){
+					$abuild[$key]=$val['lv'];
+				}
+				$build=json_encode($abuild,JSON_FORCE_OBJECT);
+				$aspacecraft=array();
+				foreach($i['spacecraft'] as $key=>$val){
+					$aspacecraft[$key]=$val['count'];
+				}
+				$spacecraft=json_encode($aspacecraft,JSON_FORCE_OBJECT);
+				pg_query("update planets set last_detail_update=now(),res='$res',power='$power',build='$build',spacecraft='$spacecraft' where position='$pos' and server_id=".$this->user['game_data']['server_id'].";");
+			}
+		}
 		if (count($pos_all)>0){
 			$planets=implode("','",$pos_all);
 			$planets="'".$planets."'";
 			$sql="delete from planets where server_id=".$this->user['game_data']['server_id']." and user_id=".$this->user['game_data']['user_id']." and position not in ($planets);";
 			pg_query($this->db,$sql);
 		}
-        }
+	}
 	public function _random_standart_username(){
 		//generate template like G11111111S11
 		$out="G20";
@@ -271,7 +271,7 @@ class GAW extends GAW_RAW{
 		}
 		// set name for new account
 		$this->G_Login();
-/*
+		/*
 		$vars=array("ex_data"=>array("new_name"=>$username));
 		while (true){
 			$this->G_Log(G_INFO,"trying update user name on $username");
@@ -287,7 +287,7 @@ class GAW extends GAW_RAW{
 				$username=$this->_random_username();
 			$vars=array("ex_data"=>array("new_name"=>$username));
 		}
-*/
+		*/
 	}
 	public function G_RegLogin($acccount,$password,$email){
 		/*
@@ -370,7 +370,7 @@ class GAW extends GAW_RAW{
 			$this->_get_savers();
 		}
 	}
-        public function G_InitName($user_name,$server_id){
+public function G_InitName($user_name,$server_id){
 		$this->cfg['user_name']=$user_name;
 		if ($server_id!="")
 			$this->cfg['server_id']=$server_id;
@@ -379,7 +379,7 @@ class GAW extends GAW_RAW{
 		$this->R_Init($this->cfg);
 		//set device_id for user (if new)
 		$this->_get_savers();
-        }
+}
 	public function G_serverList(){
 		//list servers and update DB
 		$data["pd"]=array("app_key"=>$this->user['game_data']['app_key'],"spx_did"=>$this->user['game_data']['spx_did'],"publish"=>"google","device"=>array("gp_adid"=>$this->user['game_data']['device_id'],"android_id"=>"-1","ios_idfa"=>"-1","mac_address"=>"-1","platform"=>"android"),"info"=>array("app_version"=>$this->user['game_data']['pkg_version'],"os_version"=>$this->user['game_data']['device_os_version'],"content_version"=>$this->user['game_data']["sdk_ver"],"platform"=>"android","device_type"=>$this->user["game_data"]["device_detail_type"]));
@@ -515,16 +515,16 @@ class GAW extends GAW_RAW{
 		$step_sec=0;
 		while (true){
 			$this->G_Ping();
-			$tek_sleep=$tek_sleep+$sleep_sec;                                                                                                                                     
-			$step_sec=$step_sec+$sleep_sec;                                                                                                                                       
+			$tek_sleep=$tek_sleep+$sleep_sec;
+			$step_sec=$step_sec+$sleep_sec;
 			if ($step_sec>60){
-				$left=$total_sleep-$tek_sleep;                                                                                                                                
-				echo Date("c")." sleep $total_sleep sec, left ".$left." sec\n";                                                                                               
-				$step_sec=0;                                                                                                                                                  
+				$left=$total_sleep-$tek_sleep;
+				echo Date("c")." sleep $total_sleep sec, left ".$left." sec\n";
+				$step_sec=0;
 			}
 			if ($tek_sleep>$total_sleep)
 				break;
-			sleep ($sleep_sec);                                                                                                                                                   
+			sleep ($sleep_sec);
 		}
 	}
 	public function G_Save($iplanet,$iship,$ires,$ispeed){
@@ -690,7 +690,7 @@ class GAW extends GAW_RAW{
 				$ex_apply=array("fleet_uid"=>$save_uid,"target_user_id_array"=>array("0"=>$saver['user_id']));
 				$this->R_Remote('nmFleet/applyUnion',array('ex_data'=>$ex_apply));
 				//$this->G_sleep(10);
-        			//$this->R_getAllInfo ();
+			//$this->R_getAllInfo ();
 				//foreach($this->user['remote_last_results']['R_getAllInfo']['data']['fleet'] as $fleet){
 				//	if (($fleet['fleet_uid']==$save_uid)and($fleet['time']>200000)){
 				//		$save_done=true;
@@ -708,13 +708,13 @@ class GAW extends GAW_RAW{
 		if (!isset($iships[22]))$iships[22]=0;
 		if (!isset($iships[23]))$iships[23]=0;
 		$kk_max=intval((($iships[1]*25000)+($iships[22]*75000)+($iships[23]*40000))/1000000);
-                $kk_res=intval(($ires[0]+$ires[1]+$ires[2])/1000000);
-                $kk_p=intval($kk_res*100/$kk_max);
-                $this->user['last_fleet_save']['res']=$ex_data['bring_res'];
-                $this->user['last_fleet_save']['res_max']=$kk_max;
-                $this->user['last_fleet_save']['total_res']=$kk_res;
-                $this->user['last_fleet_save']['total_percent']=$kk_p;
-                $this->user['last_fleet_save']['fleet_uid']=$save_uid;
+		$kk_res=intval(($ires[0]+$ires[1]+$ires[2])/1000000);
+		$kk_p=intval($kk_res*100/$kk_max);
+		$this->user['last_fleet_save']['res']=$ex_data['bring_res'];
+		$this->user['last_fleet_save']['res_max']=$kk_max;
+		$this->user['last_fleet_save']['total_res']=$kk_res;
+		$this->user['last_fleet_save']['total_percent']=$kk_p;
+		$this->user['last_fleet_save']['fleet_uid']=$save_uid;
 		//return $save_done;
 	}
 	public function G_Exit(){
