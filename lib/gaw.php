@@ -32,7 +32,7 @@ class GAW extends GAW_RAW{
 			$this->cfg['password_hash']=$resf[0]['password_hash'];
 		}
 	}
-private function _pre_get_device(){
+	private function _pre_get_device(){
 		if ($this->cfg['user_id']!="")
 			$filter="user_id='".$this->cfg['user_id']."'";
 		elseif (($this->cfg['user_name']!="")and($this->cfg['server_id']!=""))
@@ -370,7 +370,7 @@ private function _pre_get_device(){
 			$this->_get_savers();
 		}
 	}
-public function G_InitName($user_name,$server_id){
+	public function G_InitName($user_name,$server_id){
 		$this->cfg['user_name']=$user_name;
 		if ($server_id!="")
 			$this->cfg['server_id']=$server_id;
@@ -379,7 +379,7 @@ public function G_InitName($user_name,$server_id){
 		$this->R_Init($this->cfg);
 		//set device_id for user (if new)
 		$this->_get_savers();
-}
+	}
 	public function G_serverList(){
 		//list servers and update DB
 		$data["pd"]=array("app_key"=>$this->user['game_data']['app_key'],"spx_did"=>$this->user['game_data']['spx_did'],"publish"=>"google","device"=>array("gp_adid"=>$this->user['game_data']['device_id'],"android_id"=>"-1","ios_idfa"=>"-1","mac_address"=>"-1","platform"=>"android"),"info"=>array("app_version"=>$this->user['game_data']['pkg_version'],"os_version"=>$this->user['game_data']['device_os_version'],"content_version"=>$this->user['game_data']["sdk_ver"],"platform"=>"android","device_type"=>$this->user["game_data"]["device_detail_type"]));
