@@ -1,0 +1,19 @@
+# оновные настройки
+main:
+  database_dir: .cache
+# параметры аккаунтов которые подключенны (чисто логин и пароль на вход, список командиров будет определён автоматически, для каждого сервера)
+accounts:
+  accname:
+    password: asdf
+# список серверов с которыми надо и можно работать
+servers:
+  - 163
+#параметры ботов
+bots:
+  bot0:
+    commanders:
+      commander_name1:
+        server_id: 163
+      commander_name2:
+        server_id: 167
+

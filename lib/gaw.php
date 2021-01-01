@@ -1,10 +1,11 @@
 <?php
 set_include_path(dirname(__FILE__));
-include('gaw-raw.php');
+include('gaw_raw.php');
 
 class GAW extends GAW_RAW{
 	public $DEBUG=4;// 1 - ERROR, 2 - WARNING, 3 - INFO, 4 - DEBUG1, 5 - DEBUG2, 6 - DEBUG3
 	public $EXIT_ON_ERROR=false;
+	public $CACHE_DIR=".cache";
 	public $db;
 	public $cfg=array(
 		"user_id"=>"",
@@ -43,10 +44,13 @@ class GAW extends GAW_RAW{
 		$this->cfg['device_id']=$resf['device_id'];
 	}
 	private function _db_init(){
-		$this->db=pg_connect("host=localhost port=5432 dbname=gaw user=gaw password=gaw") or die('connection to db failed');
+		$iDbFileName=dirname(__FILE__)."/../".$this->CACHE_DIR."/".$this->cfg["server_id"].".db";
+		$this->db=new SQLite3($iDbFileName,SQLITE3_OPEN_CREATE);
+		//$this->db=pg_connect("host=localhost port=5432 dbname=gaw user=gaw password=gaw") or die('connection to db failed');
 	}
-	private function _db_query($sql){
-		echo "run";
+	private function _db_query($vSql){
+		$iDbRes=$this->db->query($vSql);
+		return $iDbRes->fetchArray();
 	}
 	private function _db_update_device(){
 		if (($this->user['game_data']['user_name']!="")and($this->user['game_data']['device_id']!=""))
