@@ -9,12 +9,26 @@ $planets=$gaw->user['remote_last_results']['R_getGameDataEx']['data']['planet_co
 $laba=$gaw->user['remote_last_results']['R_getGameDataEx']['data']['tec_info']['11']['lv'];
 $mmore=intval($laba/2)-$planets+1;
 echo "planet_tech: $planets/$laba/$mmore\n";
+die();
 $gaw->R_getAllInfo();
 $gaw->R_getFrientList();
 $gaw->G_updatePlanetsInfo("all",0);                                                                                                   
 echo "planets: ".implode(',',array_keys($gaw->user['planets']))."\n";                                                                 
 // temporary open boxes
 $gaw->R_getItemCountInfo();
+// save to db boxes and tec
+$tec=array();
+foreach ($gaw->user['remote_last_results']['R_getGameDataEx']['data']['tec_info'] as $k=>$v){
+	$tec[$k]=$v['lv'];
+}
+$box=array();
+foreach ($gaw->user['remote_last_results']['R_getItemCountInfo']['data']['info'] as $v){
+	$box[$v['id']]=$v['count'];
+}
+$sbox=json_encode($box,JSON_FORCE_OBJECT);
+$stec=json_encode($tec,JSON_FORCE_OBJECT);
+pg_query($gaw->db,"insert into userinfo (user_name,tec,item,last_update) values ('$user','$stec','$sbox',now()) on conflict (user_name) do update set tec='$stec',item='$sbox',last_update=now();");
+
 $box_for_open=array(63,65,67,147,179,185);
 foreach($box_for_open as $box){
 	if (isset($gaw->user['remote_last_results']['R_getItemCountInfo']['data']['info'][$box]['count'])){

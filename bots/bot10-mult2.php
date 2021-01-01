@@ -1,5 +1,6 @@
 <?php
-// for 9 type
+// for 9 
+// сборщик ресов с мелких акков, имеет возможность прятать ресурсы если идёт неавторизированная атака
 include "../lib/gaw.php";
 /*
 	140/2 грузов необходимо для сбора 1 мульта в 2 волны из расчёта до 4кк на мульте
@@ -12,8 +13,8 @@ include "../lib/gaw.php";
 #$res_per_mult=4000000; // усреднённое количество ресов которое может лежать на 1 мульте
 $res_per_mult=4000000; // усреднённое количество ресов которое может лежать на 1 мульте, используется для подсчёта кораблей необходимых на сборщике, для их автоматической постройки
 $treshold=0.75; // 75% заполнения мульта даёт сигнал о доступности к сбору
-$waves='1';// i - интелектуальный выбор волн для выгребания под 0
-$update_attack_mult=true;//обновление данных по мульту до и после атаки
+$waves='i';// i - интелектуальный выбор волн для выгребания под 0
+$update_attack_mult=false;//обновление данных по мульту до и после атаки
 $rate=100;
 $upshift=1;
 $reserved_slots=0;
@@ -385,7 +386,7 @@ $min_ships=180;
 $gaw=new GAW();
 $is_login=false;
 while (true){
-	wait_activation();
+	//wait_activation();
 	update_buff();
 	$build_ships=get_ships_needed();
 	if($build_ships>0){
@@ -396,8 +397,8 @@ while (true){
 	$fslots=get_free_slots();
 	$tuid=$gaw->user['game_data']['user_id'];
 	$sql="select count(*) from planets where 1=1
-			and user_id in (select user_id from vusers where type in (7,11,12,13,17) and server_id=".$gaw->user['game_data']['server_id'].")
-			and user_id not in (select user_id from bots.bot10_status where last_sent_attack>now()-interval '2 hours') 
+			and user_id in (select user_id from users where type in (7,11,12,13,17) and server_id=".$gaw->user['game_data']['server_id']." and ban=true)
+			and user_id not in (select user_id from bots.bot10_status where ban_take_res=true) 
 			and mother=true 
 			and (string_to_array (position, '_'))[1] = (select (string_to_array (position, '_'))[1] from planets where user_id=".$gaw->user['game_data']['user_id'].") 
 			and (string_to_array (position, '_'))[2]::integer >= (select (string_to_array (position, '_'))[2]::integer-(select sys_down from bots.bot10_cfg where user_id=".$gaw->user['game_data']['user_id'].") from planets where 1=1 and user_id=".$gaw->user['game_data']['user_id'].") 
@@ -417,7 +418,7 @@ while (true){
 	                (res->>'2')::bigint as gaz_res,position
         	from planets
 	        where user_id in (select user_id from users where ban=false)
-			and user_id in (select user_id from vusers where type in (7,11,12,13,17) and server_id=".$gaw->user['game_data']['server_id'].")
+			and user_id in (select user_id from vusers where type in (7,11,12,13,17))
                 	and user_id not in (select user_id from bots.bot10_status where last_sent_attack>now()-interval '2 hours')
 	                and mother=true
         	        and (string_to_array (position, '_'))[1] =

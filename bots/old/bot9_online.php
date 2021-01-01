@@ -1,4 +1,7 @@
 <?php
+
+#непомню
+
 include "../lib/gaw.php";
 function update_universe($g,$s){
 	global $gaw;

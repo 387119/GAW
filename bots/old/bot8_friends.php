@@ -1,4 +1,7 @@
 <?php
+
+#назначение непомню
+
 include "../lib/gaw.php";
 //$user=21540082118;//diloya
 
