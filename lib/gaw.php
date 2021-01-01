@@ -1,6 +1,6 @@
 <?php
 set_include_path(dirname(__FILE__));
-include('gaw_raw.php');
+include('gaw-raw.php');
 
 class GAW extends GAW_RAW{
 	public $DEBUG=4;// 1 - ERROR, 2 - WARNING, 3 - INFO, 4 - DEBUG1, 5 - DEBUG2, 6 - DEBUG3
@@ -14,7 +14,7 @@ class GAW extends GAW_RAW{
 	public function __construct(){
 		//initialization
 		parent::__construct();
-		$this->db=pg_connect("host=localhost port=5432 dbname=gaw user=gaw password=gaw") or die('connection to db failed');
+		$this->_db_init();
 	}
 	//****** INTERNAL FUNCTION ********
 	private function _pre_get_account(){
@@ -41,6 +41,12 @@ class GAW extends GAW_RAW{
 		$res=pg_query($this->db,"select device_id from users where $filter;");
 		$resf=pg_fetch_array($res,NULL);
 		$this->cfg['device_id']=$resf['device_id'];
+	}
+	private function _db_init(){
+		$this->db=pg_connect("host=localhost port=5432 dbname=gaw user=gaw password=gaw") or die('connection to db failed');
+	}
+	private function _db_query($sql){
+		echo "run";
 	}
 	private function _db_update_device(){
 		if (($this->user['game_data']['user_name']!="")and($this->user['game_data']['device_id']!=""))
@@ -95,7 +101,7 @@ class GAW extends GAW_RAW{
 		if ($this->user['remote']['nmLogin/enterGame']['response']['data']['error']==191){
 			print_r($this->user['remote']['nmLogin/enterGame']['response']['data']);
 			pg_query($this->db,"update users set ban=true,enabled=false where user_id=".$this->user['game_data']['user_id'].";");
-			$this->G_Log(G_ERROR,"user ".$this->user['game_data']['user_name']." has been banned, on server ".$this->user['game_data']['server_id']);
+			$this->gawLog(G_ERROR,"user ".$this->user['game_data']['user_name']." has been banned, on server ".$this->user['game_data']['server_id']);
 			die();
 		}
 	}
@@ -225,7 +231,12 @@ class GAW extends GAW_RAW{
 		return $a;
 	}
 	//***** PUBLIC FUNCTIONS -  API FOR OTHERS ******
-	public function G_RegRand($server_id,$account_id = false,$standart_username = true){
+	public function dbQuery($vSql){
+		//public function for run sql queries into db from scripts
+		$iRet=$this->_db_query($vSql);
+		return $iRet;
+	}
+	public function gawRegRand($server_id,$account_id = false,$standart_username = true){
 		/*
 			generate new login/password
 			register Login
@@ -241,7 +252,7 @@ class GAW extends GAW_RAW{
 		$email=$this->_random_email();
 		//register new account
 		if ($account_id==false){
-			if (!$this->G_RegLogin($loginname,$password,$email)){
+			if (!$this->gawRegLogin($loginname,$password,$email)){
 				echo "cannot create new acccount\n";
 				print_r($this->user['remote']['api_account/reg']);
 				return;
@@ -249,32 +260,32 @@ class GAW extends GAW_RAW{
 			}
 		}else{
 			//login into account
-			$this->G_InitAccId($account_id,$server_id);
+			$this->gawInitAccId($account_id,$server_id);
 			$this->R_Remote('api_account/login');
 			pg_query($this->db,"update accounts set account_id='".$this->user['game_data']['account_id']."',password_hash='".$this->user['game_data']['password_hash']."' where acccount='".$this->user['game_data']['acccount']."';");
 			$this->R_Remote('api_account/auto_login');
 			if ($this->user['remote']['api_account/auto_login']['response']['data']['error_code']!=1)
 				return ("Cannot login, maybe wrong password, account $account_id\n");
-			$this->G_getUserList();
+			$this->gawgetUserList();
 			if (count($this->user['remote']['nmLogin/getUserList']['response']['data']['users'])>0){
-				$this->G_Log(G_INFO,"users already exists on this server, but we didn`t check user_ids, skipping register");
+				$this->gawLog(G_INFO,"users already exists on this server, but we didn`t check user_ids, skipping register");
 				return false;
 			}
 			//$this->R_Remote('nmLogin/getUserList');
 		}
 		// register commander
-		if (!$this->G_RegUser($username,$server_id)){
+		if (!$this->gawRegUser($username,$server_id)){
 			echo "cannot create new user for acccount $username\n";
 			print_r($this->user['remote']['nmLogin/createUser']);
 			return;
 			//die();
 		}
 		// set name for new account
-		$this->G_Login();
+		$this->gawLogin();
 		/*
 		$vars=array("ex_data"=>array("new_name"=>$username));
 		while (true){
-			$this->G_Log(G_INFO,"trying update user name on $username");
+			$this->gawLog(G_INFO,"trying update user name on $username");
 			$this->R_Remote('nmUser/setUserName',$vars);
 			if ($this->user['remote']['nmUser/setUserName']['response']['data']['error']==0){
 				$sql="insert into users (user_id,server_id,user_name,last_update) values (".$this->user['game_data']['user_id'].",$server_id,'$username',CURRENT_TIMESTAMP) on conflict (user_id) do update set server_id=$server_id,user_name='$username';";
@@ -289,7 +300,7 @@ class GAW extends GAW_RAW{
 		}
 		*/
 	}
-	public function G_RegLogin($acccount,$password,$email){
+	public function gawRegLogin($acccount,$password,$email){
 		/*
 			1 - reg (Получается замена для login) - return false if exists
 			2 - auto_login
@@ -312,7 +323,7 @@ class GAW extends GAW_RAW{
 		else
 			return false;
 	}
-	public function G_RegUser($user_name,$server_id){
+	public function gawRegUser($user_name,$server_id){
 		/*
 			1 - createUser (Замена enterGame, регистрация нового командира на сервере)
 			2 - setusername
@@ -329,7 +340,7 @@ class GAW extends GAW_RAW{
 		else
 			return false;
 	}
-	public function G_InitAccId($account_id,$server_id){
+	public function gawInitAccId($account_id,$server_id){
 		//init without user_name, need for first login and create user_list
 		$this->cfg['server_id']=$server_id;
 		$res=pg_query($this->db,"select account_id,acccount,passwd,password_hash from accounts where account_id='$account_id';");
@@ -342,7 +353,7 @@ class GAW extends GAW_RAW{
 		}
 		$this->R_Init($this->cfg);
 	}
-	public function G_InitAcc($acccount,$server_id){
+	public function gawInitAcc($acccount,$server_id){
 		//init without user_name, need for first login and create user_list
 		$this->cfg['server_id']=$server_id;
 		$res=pg_query($this->db,"select account_id,acccount,passwd,password_hash from accounts where acccount='$acccount';");
@@ -355,7 +366,7 @@ class GAW extends GAW_RAW{
 		}
 		$this->R_Init($this->cfg);
 	}
-	public function G_InitId ($user_id){
+	public function gawInitId ($user_id){
 		// init with user_id
 		if (!$this->_db_load_session($user_id)){
 			$this->cfg['user_id']=$user_id;
@@ -370,7 +381,7 @@ class GAW extends GAW_RAW{
 			$this->_get_savers();
 		}
 	}
-	public function G_InitName($user_name,$server_id){
+	public function gawInitName($user_name,$server_id){
 		$this->cfg['user_name']=$user_name;
 		if ($server_id!="")
 			$this->cfg['server_id']=$server_id;
@@ -380,7 +391,7 @@ class GAW extends GAW_RAW{
 		//set device_id for user (if new)
 		$this->_get_savers();
 	}
-	public function G_serverList(){
+	public function gawServerList(){
 		//list servers and update DB
 		$data["pd"]=array("app_key"=>$this->user['game_data']['app_key'],"spx_did"=>$this->user['game_data']['spx_did'],"publish"=>"google","device"=>array("gp_adid"=>$this->user['game_data']['device_id'],"android_id"=>"-1","ios_idfa"=>"-1","mac_address"=>"-1","platform"=>"android"),"info"=>array("app_version"=>$this->user['game_data']['pkg_version'],"os_version"=>$this->user['game_data']['device_os_version'],"content_version"=>$this->user['game_data']["sdk_ver"],"platform"=>"android","device_type"=>$this->user["game_data"]["device_detail_type"]));
 		$this->R_Remote("/spx_gsm/api_game_server/serverList/ING004/google/0222/0/ru");
@@ -389,7 +400,7 @@ class GAW extends GAW_RAW{
 			pg_query("insert into servers (server_id,name,country,state,new,address) values ($server_id,'$name','$country',$state,$new,'$address') on conflict (server_id) do update set state=$state;");
 		}
 	}       
-	public function G_getUserList(){
+	public function gawGetUserList(){
 		$this->R_Remote('nmLogin/getUserList');
 		foreach ($this->user['remote']['nmLogin/getUserList']['response']['data']['users'] as $u){
 			pg_query($this->db,"insert into users (user_id,server_id,user_name,level,score,last_update) values (".$u['user_id'].",".$this->user['game_data']['server_id'].",'".$u['user_name']."',".$u['commander_info']['level'].",".$u['personal_score'].",CURRENT_TIMESTAMP) on conflict (user_id) do update set user_name='".$u["user_name"]."',level=".$u['commander_info']['level'].",score=".$u['personal_score'].",last_update=CURRENT_TIMESTAMP;");
@@ -398,7 +409,7 @@ class GAW extends GAW_RAW{
 				$this->user['game_data']['user_name']=$u['user_name'];
 		}
 	}
-	public function G_autologin (){
+	public function gawAutoLogin (){
 		$this->R_Remote('api_account/auto_login');
 		//print_r($this->user);die();
 		if ($this->user['remote']['api_account/auto_login']['response']['data']['error_code']!=1){
@@ -410,7 +421,7 @@ class GAW extends GAW_RAW{
 				die ("Cannot login, maybe wrong password\n");
 		}
 	}
-	public function G_Login (){
+	public function gawLogin (){
 		$s=$this->EXIT_ON_ERROR;
 		$this->EXIT_ON_ERROR=false;
 		//$this->R_Remote('nmUser/tick');
@@ -419,7 +430,7 @@ class GAW extends GAW_RAW{
 			//$this->R_Remote('nmUnit/getUnitConfig');
 			//$this->R_Remote('nmItem/getItemPrice');
 			//$this->R_Remote('nmUser/getUserPlanetList');
-			//$this->G_Ping(0);
+			//$this->gawPing(0);
 		//	$this->user['remote']['nmUser/tick']['response']['data']['error']=1;
 			//$this->_sync_planets_to_db();
 			//return;
@@ -432,9 +443,9 @@ class GAW extends GAW_RAW{
 			$this->R_Remote('api_account/login');
 			pg_query($this->db,"update accounts set account_id='".$this->user['game_data']['account_id']."',password_hash='".$this->user['game_data']['password_hash']."' where acccount='".$this->user['game_data']['acccount']."';");
 		}
-		$this->G_autologin();
+		$this->gawAutoLogin();
 		//print_r($this->user);die();
-		$this->G_getUserList();
+		$this->gawGetUserList();
 		if ($this->user['game_data']["user_name"]!=""){
 			pg_query ($this->db,"update users set device_id='".$this->user['game_data']['device_id']."' where user_id=".$this->user['game_data']['user_id'].";");
 			$this->R_Remote('nmLogin/enterGame');
@@ -446,15 +457,15 @@ class GAW extends GAW_RAW{
 			$this->R_Remote('nmItem/getItemPrice');
 			$this->R_Remote('nmUser/getUserPlanetList');
 			$this->_sync_planets_to_db();
-			//$this->G_Ping();
+			//$this->gawPing();
 		}
 	}
-	public function G_Ping($time=30){
+	public function gawPing($time=30){
 		//ping
 		$this->R_Ping($time);
 		$this->_db_update_user();
 	}
-	public function G_updatePlanets($what_check=false,$level=false){
+	public function gawupdatePlanets($what_check=false,$level=false){
 		//level 1-list,2-info,3-list+info,4-spacecraft,5-info+spacecraft,6-list+info+spacecraft
 		//last must take data from mother position
 		$delay=0;
@@ -508,13 +519,13 @@ class GAW extends GAW_RAW{
 		}
 		$this->_sync_planets_to_db();
 	}
-	public function G_Sleep($total_sleep){
+	public function gawSleep($total_sleep){
 		//sleep n seconds
 		$sleep_sec=1;
 		$tek_sleep=0;
 		$step_sec=0;
 		while (true){
-			$this->G_Ping();
+			$this->gawPing();
 			$tek_sleep=$tek_sleep+$sleep_sec;
 			$step_sec=$step_sec+$sleep_sec;
 			if ($step_sec>60){
@@ -527,7 +538,7 @@ class GAW extends GAW_RAW{
 			sleep ($sleep_sec);
 		}
 	}
-	public function G_Save($iplanet,$iship,$ires,$ispeed){
+	public function gawSave($iplanet,$iship,$ires,$ispeed){
 		/*
 			iplanet - Планета отправки
 				string - явное указание планеты
@@ -573,7 +584,7 @@ class GAW extends GAW_RAW{
 		if (is_array($iship))
 			$ex_data['bring_ship']=$iship;
 		else{
-			$this->G_updatePlanets($ex_data['start_pos'],5);
+			$this->gawUpdatePlanets($ex_data['start_pos'],5);
 			switch ($iship){
 				case "2":
 					$ex_data['bring_ship']=array(
@@ -689,7 +700,7 @@ class GAW extends GAW_RAW{
 			//if ($saver_id>0){
 				$ex_apply=array("fleet_uid"=>$save_uid,"target_user_id_array"=>array("0"=>$saver['user_id']));
 				$this->R_Remote('nmFleet/applyUnion',array('ex_data'=>$ex_apply));
-				//$this->G_sleep(10);
+				//$this->gawSleep(10);
 			//$this->R_getAllInfo ();
 				//foreach($this->user['remote_last_results']['R_getAllInfo']['data']['fleet'] as $fleet){
 				//	if (($fleet['fleet_uid']==$save_uid)and($fleet['time']>200000)){
@@ -717,11 +728,11 @@ class GAW extends GAW_RAW{
 		$this->user['last_fleet_save']['fleet_uid']=$save_uid;
 		//return $save_done;
 	}
-	public function G_Exit(){
+	public function gawExit(){
 		echo Date("c")." Exit from ".$this->user['game_data']['user_id'];
 		pg_close($this->db);
 	}
-	public function G_Log($level,$text){
+	public function gawLog($level,$text){
 		$this->R_Log($level,$text);
 	}
 }
