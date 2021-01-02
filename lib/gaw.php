@@ -734,9 +734,15 @@ class GAW extends GAW_RAW{
 		$this->user['last_fleet_save']['fleet_uid']=$save_uid;
 		//return $save_done;
 	}
+	public function G_Chat($vMsg){//было просто перенесено но не проверено
+		$tick=date("Y-m-d H:i:s");
+		$count=20;
+		$vars['ex_data']=array("text"=>$vMsg,"count"=>$count,"tick"=>$tick);
+		$gaw->R_Remote('nmChat/sendChat',$vars);
+	}
 	public function G_Exit(){
 		echo Date("c")." Exit from ".$this->user['game_data']['user_id'];
-		pg_close($this->db);
+		//pg_close($this->db);
 	}
 	public function G_Log($level,$text){
 		$this->R_Log($level,$text);
