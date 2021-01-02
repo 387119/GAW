@@ -50,7 +50,7 @@ class GAW extends GAW_RAW{
 		//$this->db=pg_connect("host=localhost port=5432 dbname=gaw user=gaw password=gaw") or die('connection to db failed');
 	}
 	private function _db_schema_create(){
-		$iSql="create table if not exists accounts (account_id bigint, account text, passwd text, password_hash text, last_update datetime);";
+		$iSql="create table if not exists accounts (account_id bigint, acccount text, passwd text, password_hash text, last_update datetime);";
 		$this->_db_query($iSql);
 		$iSql="create table if not exists users (user_id bigint, user_name text, level integer, score integer, account text, device_id text, gold integer, alliance text, last_update datetime);";
 		$this->_db_query($iSql);
