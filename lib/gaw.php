@@ -265,7 +265,7 @@ class GAW extends GAW_RAW{
 		$email=$this->_random_email();
 		//register new account
 		if ($account_id==false){
-			if (!$this->G_RegLogin($loginname,$password,$email)){///!!!!!!!!!
+			if (!$this->G_RegLogin($loginname,$password,$email)){
 				echo "cannot create new acccount\n";
 				print_r($this->user['remote']['api_account/reg']);
 				return;
@@ -273,7 +273,7 @@ class GAW extends GAW_RAW{
 			}
 		}else{
 			//login into account
-			$this->G_InitAccId($account_id,$server_id);/////!!!!!
+			$this->G_InitAccId($account_id,$server_id);/////!!!!
 			$this->R_Remote('api_account/login');
 			$this->_db_query("update accounts set account_id='".$this->user['game_data']['account_id']."',password_hash='".$this->user['game_data']['password_hash']."' where acccount='".$this->user['game_data']['acccount']."';");
 			$this->R_Remote('api_account/auto_login');
@@ -294,7 +294,7 @@ class GAW extends GAW_RAW{
 			//die();
 		}
 		// set name for new account
-		$this->G_Login();
+		///////////////////////////////////$this->G_Login();
 		/*
 		$vars=array("ex_data"=>array("new_name"=>$username));
 		while (true){
