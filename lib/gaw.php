@@ -25,7 +25,7 @@ class GAW extends GAW_RAW{
 		elseif (($this->cfg['user_name']!="")and($this->cfg['server_id']!=""))
 			$sql="select account_id,acccount,passwd,password_hash from accounts where account_id in (select account_id from accounts_users where user_id in (select user_id from users where user_name='".$this->cfg['user_name']."' and server_id=".$this->cfg['server_id']."));";
 		else return false;
-		$res=pg_query($this->db,$sql);
+		$res=$this->_db_query($sql);
 		$resf=pg_fetch_all($res);
 		if (isset($resf[0])){
 			$this->cfg['account_id']=$resf[0]['account_id'];
@@ -40,7 +40,7 @@ class GAW extends GAW_RAW{
 		elseif (($this->cfg['user_name']!="")and($this->cfg['server_id']!=""))
 			$filter="user_name='".$this->cfg['user_name']."' and server_id=".$this->cfg['server_id']."";
 		else return false;
-		$res=pg_query($this->db,"select device_id from users where $filter;");
+		$res=$this->_db_query("select device_id from users where $filter;");
 		$resf=pg_fetch_array($res,NULL);
 		$this->cfg['device_id']=$resf['device_id'];
 	}
@@ -63,7 +63,7 @@ class GAW extends GAW_RAW{
 	}
 	private function _db_update_device(){
 		if (($this->user['game_data']['user_name']!="")and($this->user['game_data']['device_id']!=""))
-			pg_query($this->db,"update users set device_id='".$this->user['game_data']['device_id']."' where user_name='".$this->user['game_data']['user_name']."' and device_id!='".$this->user['game_data']['device_id']."';");
+			$this->_db_query("update users set device_id='".$this->user['game_data']['device_id']."' where user_name='".$this->user['game_data']['user_name']."' and device_id!='".$this->user['game_data']['device_id']."';");
 	}
 	private function _db_update_user(){
 		if (isset($this->user['remote']['nmUser/getGameDataEx']['response']['data'])){
@@ -73,18 +73,18 @@ class GAW extends GAW_RAW{
 				$gold=$this->user['remote']['nmUser/getGameDataEx']['response']['data']['gold'];
 			$score=$this->user['remote']['nmUser/getGameDataEx']['response']['data']['personal_score'];
 			$sql="update users set score=$score,gold=$gold where user_id=".$this->user['game_data']['user_id'].";";
-			pg_query($this->db,$sql);
+			$this->_db_query($sql);
 		}
 	}
 	private function _db_save_session(){
 		//save current session to db
 		$sql="insert into sessions (user_id,last_update,game_data) values (".$this->user['game_data']['user_id'].",now(),'".json_encode($this->user['game_data'])."') on conflict (user_id) do update set last_update=now(),game_data='".json_encode($this->user['game_data'])."';";
-		pg_query ($this->db,$sql);
+		$this->_db_query($sql);
 	}
 	private function _db_load_session($user_id){
 		//load saved session from db
 		$sql="select game_data from sessions where user_id=$user_id;";
-		$res=pg_query ($this->db,$sql);
+		$res=$this->_db_query($sql);
 		$resf=pg_fetch_all($res);
 		if (isset($resf[0]['game_data'])){
 			$this->user['game_data']=json_decode($resf[0]['game_data'],true);
@@ -105,7 +105,7 @@ class GAW extends GAW_RAW{
 	}
 	private function _get_server_id(){
 		if ($this->cfg['user_id']!=""){
-			$res=pg_query($this->db,"select server_id from users where user_id=".$this->cfg['user_id'].";");
+			$res=$this->_db_query("select server_id from users where user_id=".$this->cfg['user_id'].";");
 			$resf=pg_fetch_array($res,NULL);
 			$this->cfg['server_id']=$resf['server_id'];
 		}
@@ -113,7 +113,7 @@ class GAW extends GAW_RAW{
 	private function _login_check_ban(){
 		if ($this->user['remote']['nmLogin/enterGame']['response']['data']['error']==191){
 			print_r($this->user['remote']['nmLogin/enterGame']['response']['data']);
-			pg_query($this->db,"update users set ban=true,enabled=false where user_id=".$this->user['game_data']['user_id'].";");
+			$this->_db_query("update users set ban=true,enabled=false where user_id=".$this->user['game_data']['user_id'].";");
 			$this->gawLog(G_ERROR,"user ".$this->user['game_data']['user_name']." has been banned, on server ".$this->user['game_data']['server_id']);
 			die();
 		}
@@ -121,7 +121,7 @@ class GAW extends GAW_RAW{
 	public function _is_online(){
 		if ($this->user['game_data']['user_id']=='')
 			return false;
-		$res=pg_query($this->db,"select online from bot0 where user_id=".$this->user['game_data']['user_id'].";");
+		$res=$this->_db_query("select online from bot0 where user_id=".$this->user['game_data']['user_id'].";");
 		$resf=pg_fetch_array($res,NULL);
 		$online=$resf['online'];
 		if ($online == 't')
@@ -131,12 +131,12 @@ class GAW extends GAW_RAW{
 		return $ret;
 	}
 	public function _get_savers(){
-		$res=pg_query($this->db,'select user_id,user_name from users where type=5 and enabled=true and server_id='.$this->user['game_data']['server_id'].';');
+		$res=$this->_db_query('select user_id,user_name from users where type=5 and enabled=true and server_id='.$this->user['game_data']['server_id'].';');
 		$this->user['savers']=pg_fetch_all($res);
 	}
 	public function _get_login_password(){
 		//get login name by Commander name
-		$res=pg_query($this->db,"select passwd,account_id,password_hash from accounts where acccount='".$this->user['game_data']['acccount']."';");
+		$res=$this->_db_query("select passwd,account_id,password_hash from accounts where acccount='".$this->user['game_data']['acccount']."';");
 		$resf=pg_fetch_array($res,NULL);
 		if (count($resf)>0){
 			$this->user['game_data']['psw_clear']=$resf['passwd'];
@@ -162,7 +162,7 @@ class GAW extends GAW_RAW{
 				if ($pos==$this->user['mother']) $m="true";
 				else $m="false";
 				$apos=explode ('_',$pos);
-				pg_query("insert into planets 
+				$this->_db_query("insert into planets 
 					(server_id,position,gal,sys,pos,planet_name,mother,user_id,temp,size,skin_id) 
 					values (".$this->user['game_data']['server_id'].",'".$pos."',".$apos[0].",".$apos[1].",".$apos[2].",'".$d['name']."',$m,".$this->user['game_data']['user_id'].",".$d['temperature'].",'$size',".$d['skin_id'].")
 					on conflict (server_id,position)
@@ -182,14 +182,14 @@ class GAW extends GAW_RAW{
 					$aspacecraft[$key]=$val['count'];
 				}
 				$spacecraft=json_encode($aspacecraft,JSON_FORCE_OBJECT);
-				pg_query("update planets set last_detail_update=now(),res='$res',power='$power',build='$build',spacecraft='$spacecraft' where position='$pos' and server_id=".$this->user['game_data']['server_id'].";");
+				$this->_db_query("update planets set last_detail_update=now(),res='$res',power='$power',build='$build',spacecraft='$spacecraft' where position='$pos' and server_id=".$this->user['game_data']['server_id'].";");
 			}
 		}
 		if (count($pos_all)>0){
 			$planets=implode("','",$pos_all);
 			$planets="'".$planets."'";
 			$sql="delete from planets where server_id=".$this->user['game_data']['server_id']." and user_id=".$this->user['game_data']['user_id']." and position not in ($planets);";
-			pg_query($this->db,$sql);
+			$this->_db_query($sql);
 		}
 	}
 	public function _random_standart_username(){
@@ -302,7 +302,7 @@ class GAW extends GAW_RAW{
 			$this->R_Remote('nmUser/setUserName',$vars);
 			if ($this->user['remote']['nmUser/setUserName']['response']['data']['error']==0){
 				$sql="insert into users (user_id,server_id,user_name,last_update) values (".$this->user['game_data']['user_id'].",$server_id,'$username',CURRENT_TIMESTAMP) on conflict (user_id) do update set server_id=$server_id,user_name='$username';";
-				pg_query($this->db,$sql);
+				$this->_db_query($sql);
 				break;
 			}
 			if ($standart_username==true)
@@ -325,7 +325,7 @@ class GAW extends GAW_RAW{
 		$this->R_Init($this->cfg);
 		$this->R_Remote('api_account/reg');
 		if ($this->user['remote']['api_account/reg']['response']['data']['error_code']==1){
-			pg_query($this->db,"insert into accounts (acccount,account_id,passwd,password_hash) values ('$acccount',".$this->user['game_data']['account_id'].",'$password','".$this->user['game_data']['password_hash']."');");
+			$this->_db_query("insert into accounts (acccount,account_id,passwd,password_hash) values ('$acccount',".$this->user['game_data']['account_id'].",'$password','".$this->user['game_data']['password_hash']."');");
 			return true;
 		}
 		else
@@ -421,7 +421,7 @@ class GAW extends GAW_RAW{
 		if ($this->user['remote']['api_account/auto_login']['response']['data']['error_code']!=1){
 			//wrong password
 			$this->R_Remote('api_account/login');
-			pg_query($this->db,"update accounts set account_id='".$this->user['game_data']['account_id']."',password_hash='".$this->user['game_data']['password_hash']."' where acccount='".$this->user['game_data']['acccount']."';");
+			$this->_db_query("update accounts set account_id='".$this->user['game_data']['account_id']."',password_hash='".$this->user['game_data']['password_hash']."' where acccount='".$this->user['game_data']['acccount']."';");
 			$this->R_Remote('api_account/auto_login');
 			if ($this->user['remote']['api_account/auto_login']['response']['data']['error_code']!=1)
 				die ("Cannot login, maybe wrong password\n");
