@@ -250,11 +250,11 @@ function build_speedup($id,$time){
 }
 // START
 $gaw=new GAW();
-$gaw->G_InitId($user);
-$bst=get_bst();
-$gaw->G_Login();
-$gaw->R_gatherPresents();
-remove_finished();
+$gaw->G_InitId($user);//инициализировать командира
+$bst=get_bst();//получить список уровней зданий для этого типа командира
+$gaw->G_Login();//войти в командира
+$gaw->R_gatherPresents();//собрать подарки
+remove_finished();//убрать те обьекты из списка которые уже выполнены
 if (count($bst)==0){
 	pg_query($gaw->db,"insert into bots.bot9_status values (".$gaw->user['game_data']['user_id'].",true) on conflict (user_id) do update set finished=true;");
 }
