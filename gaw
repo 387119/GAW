@@ -1,0 +1,4 @@
+#!/bin/bash
+docker build -q -t gaw-local .
+docker run -v ${PWD}:/gaw -w /gaw gaw-local php ${1}
+

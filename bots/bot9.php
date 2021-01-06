@@ -1,6 +1,10 @@
 <?php
-include "../lib/gaw.php";
-$user=$argv[1];
+require dirname(__FILE__)."/../lib/gaw.php";
+
+$gStrategies="";
+$gCfg=array(
+	"strategies"=>dirname(__FILE__)."/../resources/bot9_build_strategies.yml"
+);
 /*
  * TODO
  * - проревьювить скрипт
@@ -12,6 +16,12 @@ $user=$argv[1];
  */
 $timewait=1200;// 20 мин ожидать, специально для того чтоб первый подарок успевал браться 
 // FUNCTION
+function get_strategies(){
+	// получение всех стратегий из файла
+	global $gCfg;
+	$iStrategies=yaml_parse_file($gCfg["strategies"]);
+	return $iStrategies;
+}
 function get_bst(){
 	global $gaw;
 	$ret=array();
@@ -248,6 +258,12 @@ function build_speedup($id,$time){
 	}
 	return $time;
 }
+// FINISH FUNCTIONS
+
+// PRE-START
+$gStrategies=get_strategies();
+print_r($gStrategies);
+die();
 // START
 $gaw=new GAW();
 $gaw->G_InitId($user);//инициализировать командира
