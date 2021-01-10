@@ -1,7 +1,11 @@
-res_acc_small:
+commanders:
+  small_res:
+    commander_types:
+      - 7
+    strategies:
+      - res_acc_small
+res_small:
   description: ресурсный мелкий аккаунт менее 20к рейта
-  acc_types:
-    - 7
   queue:
     - "0_3_1"
     - "0_0_1"

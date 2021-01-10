@@ -7,7 +7,9 @@ class GAW extends GAW_RAW{
 	public $EXIT_ON_ERROR=false;
 	public $CACHE_DIR=".cache";
 	public $db;
-	public $cfg=array(
+	public $CONFIG_FILE_NAME="config.yml";
+	public $cfgFile;
+	public $cfgGame=array(
 		"user_id"=>"",
 		"user_name"=>"",
 		"server_id"=>"163"
@@ -15,44 +17,52 @@ class GAW extends GAW_RAW{
 	public function __construct(){
 		//initialization
 		parent::__construct();
+		$this->_read_config();
 		$this->_db_init();
 		$this->_db_schema_create();
 	}
 	//****** INTERNAL FUNCTION ********
 	private function _pre_get_account(){
-		if ($this->cfg['user_id']!="")
-			$sql="select account_id,acccount,passwd,password_hash from accounts where account_id in (select account_id from accounts_users where user_id=".$this->cfg['user_id'].") limit 1;";
-		elseif (($this->cfg['user_name']!="")and($this->cfg['server_id']!=""))
-			$sql="select account_id,acccount,passwd,password_hash from accounts where account_id in (select account_id from accounts_users where user_id in (select user_id from users where user_name='".$this->cfg['user_name']."' and server_id=".$this->cfg['server_id']."));";
+		if ($this->cfgGame['user_id']!="")
+			$sql="select account_id,acccount,passwd,password_hash from accounts where account_id in (select account_id from accounts_users where user_id=".$this->cfgGame['user_id'].") limit 1;";
+		elseif (($this->cfgGame['user_name']!="")and($this->cfgGame['server_id']!=""))
+			$sql="select account_id,acccount,passwd,password_hash from accounts where account_id in (select account_id from accounts_users where user_id in (select user_id from users where user_name='".$this->cfgGame['user_name']."' and server_id=".$this->cfgGame['server_id']."));";
 		else return false;
 		$res=$this->_db_query($sql);
 		$resf=pg_fetch_all($res);
 		if (isset($resf[0])){
-			$this->cfg['account_id']=$resf[0]['account_id'];
-			$this->cfg['acccount']=$resf[0]['acccount'];
-			$this->cfg['psw_clear']=$resf[0]['passwd'];
-			$this->cfg['password_hash']=$resf[0]['password_hash'];
+			$this->cfgGame['account_id']=$resf[0]['account_id'];
+			$this->cfgGame['acccount']=$resf[0]['acccount'];
+			$this->cfgGame['psw_clear']=$resf[0]['passwd'];
+			$this->cfgGame['password_hash']=$resf[0]['password_hash'];
 		}
 	}
 	private function _pre_get_device(){
-		if ($this->cfg['user_id']!="")
-			$filter="user_id='".$this->cfg['user_id']."'";
-		elseif (($this->cfg['user_name']!="")and($this->cfg['server_id']!=""))
-			$filter="user_name='".$this->cfg['user_name']."' and server_id=".$this->cfg['server_id']."";
+		if ($this->cfgGame['user_id']!="")
+			$filter="user_id='".$this->cfgGame['user_id']."'";
+		elseif (($this->cfgGame['user_name']!="")and($this->cfgGame['server_id']!=""))
+			$filter="user_name='".$this->cfgGame['user_name']."' and server_id=".$this->cfgGame['server_id']."";
 		else return false;
 		$res=$this->_db_query("select device_id from users where $filter;");
 		$resf=pg_fetch_array($res,NULL);
-		$this->cfg['device_id']=$resf['device_id'];
+		$this->cfgGame['device_id']=$resf['device_id'];
+	}
+	private function _read_config(){
+		//read config file
+		$iCfg=yaml_parse_file(dirname(__FILE__)."/../".$this->CONFIG_FILE_NAME);
+		$this->cfgFile=$iCfg;
 	}
 	private function _db_init(){
-		$iDbFileName=dirname(__FILE__)."/../".$this->CACHE_DIR."/".$this->cfg["server_id"].".db";
+		$iDbFileName=dirname(__FILE__)."/../".$this->CACHE_DIR."/".$this->cfgGame["server_id"].".db";
 		$this->db=new SQLite3($iDbFileName,SQLITE3_OPEN_READWRITE|SQLITE3_OPEN_CREATE);
 		//$this->db=pg_connect("host=localhost port=5432 dbname=gaw user=gaw password=gaw") or die('connection to db failed');
 	}
 	private function _db_schema_create(){
 		$iSql="create table if not exists accounts (account_id bigint, acccount text, passwd text, password_hash text, last_update datetime);";
 		$this->_db_query($iSql);
-		$iSql="create table if not exists users (user_id bigint, user_name text, level integer, score integer, account text, device_id text, gold integer, alliance text, last_update datetime);";
+		$iSql="create table if not exists users (user_id bigint, user_name text, commander_lv integer, score integer, vip_lv integer, device_id text, planets integer, gold integer, alliance text, user_type integer not null default 0, ban boolean not null default false, last_update datetime);";
+		$this->_db_query($iSql);
+		$iSql="create table if not exists accounts_users (account_id bigint, user_id bigint);";
 		$this->_db_query($iSql);
 		$iSql="create table if not exists planets (gal integer, sys integer, pos integer, planet_name text, user_name text, last_update datetime);";
 		$this->_db_query($iSql);
@@ -104,10 +114,10 @@ class GAW extends GAW_RAW{
 		*/
 	}
 	private function _get_server_id(){
-		if ($this->cfg['user_id']!=""){
-			$res=$this->_db_query("select server_id from users where user_id=".$this->cfg['user_id'].";");
+		if ($this->cfgGame['user_id']!=""){
+			$res=$this->_db_query("select server_id from users where user_id=".$this->cfgGame['user_id'].";");
 			$resf=pg_fetch_array($res,NULL);
-			$this->cfg['server_id']=$resf['server_id'];
+			$this->cfgGame['server_id']=$resf['server_id'];
 		}
 	}
 	private function _login_check_ban(){
@@ -249,6 +259,10 @@ class GAW extends GAW_RAW{
 		$iRet=$this->_db_query($vSql);
 		return $iRet;
 	}
+	public function G_Remote($vRemote,$vData=false){
+		//удалённый вызов API сервера для получения данных
+		$this->R_Remote($vRemote,$vData);
+	}
 	public function G_RegRand($server_id,$account_id = false,$standart_username = true){
 		/*
 			generate new login/password
@@ -319,10 +333,10 @@ class GAW extends GAW_RAW{
 			2 - auto_login
 			4 - insert into db
 		*/
-		$this->cfg['acccount']=$acccount;
-		$this->cfg['psw_clear']=$password;
-		$this->cfg['email']=$email;
-		$this->R_Init($this->cfg);
+		$this->cfgGame['acccount']=$acccount;
+		$this->cfgGame['psw_clear']=$password;
+		$this->cfgGame['email']=$email;
+		$this->R_Init($this->cfgGame);
 		$this->R_Remote('api_account/reg');
 		if ($this->user['remote']['api_account/reg']['response']['data']['error_code']==1){
 			$this->_db_query("insert into accounts (acccount,account_id,passwd,password_hash) values ('$acccount',".$this->user['game_data']['account_id'].",'$password','".$this->user['game_data']['password_hash']."');");
@@ -350,36 +364,36 @@ class GAW extends GAW_RAW{
 	}
 	public function G_InitAccId($account_id,$server_id){
 		//init without user_name, need for first login and create user_list
-		$this->cfg['server_id']=$server_id;
+		$this->cfgGame['server_id']=$server_id;
 		$res=$this->_db_query("select account_id,acccount,passwd,password_hash from accounts where account_id='$account_id';");
 		if (isset($res[0])){
-			$this->cfg['account_id']=$res[0]['account_id'];
-			$this->cfg['acccount']=$res[0]['acccount'];
-			$this->cfg['psw_clear']=$res[0]['passwd'];
-			$this->cfg['password_hash']=$res[0]['password_hash'];
+			$this->cfgGame['account_id']=$res[0]['account_id'];
+			$this->cfgGame['acccount']=$res[0]['acccount'];
+			$this->cfgGame['psw_clear']=$res[0]['passwd'];
+			$this->cfgGame['password_hash']=$res[0]['password_hash'];
 		}
-		$this->R_Init($this->cfg);
+		$this->R_Init($this->cfgGame);
 	}
 	public function G_InitAcc($acccount,$server_id){
 		//init without user_name, need for first login and create user_list
-		$this->cfg['server_id']=$server_id;
+		$this->cfgGame['server_id']=$server_id;
 		$res=$this->_db_query("select account_id,acccount,passwd,password_hash from accounts where acccount='$acccount';");
 		if (isset($res[0])){
-			$this->cfg['account_id']=$res[0]['account_id'];
-			$this->cfg['acccount']=$res[0]['acccount'];
-			$this->cfg['psw_clear']=$res[0]['passwd'];
-			$this->cfg['password_hash']=$res[0]['password_hash'];
+			$this->cfgGame['account_id']=$res[0]['account_id'];
+			$this->cfgGame['acccount']=$res[0]['acccount'];
+			$this->cfgGame['psw_clear']=$res[0]['passwd'];
+			$this->cfgGame['password_hash']=$res[0]['password_hash'];
 		}
-		$this->R_Init($this->cfg);
+		$this->R_Init($this->cfgGame);
 	}
 	public function G_InitId ($user_id){
 		// init with user_id
 		if (!$this->_db_load_session($user_id)){
-			$this->cfg['user_id']=$user_id;
+			$this->cfgGame['user_id']=$user_id;
 			$this->_get_server_id();
 			$this->_pre_get_account();
 			$this->_pre_get_device();
-			$this->R_Init($this->cfg);
+			$this->R_Init($this->cfgGame);
 			//set device_id for user (if new)
 			$this->_get_savers();
 		}else{
@@ -387,17 +401,15 @@ class GAW extends GAW_RAW{
 			$this->_get_savers();
 		}
 	}
-	public function G_InitName($user_name,$server_id){
-		$this->cfg['user_name']=$user_name;
-		if ($server_id!="")
-			$this->cfg['server_id']=$server_id;
+	public function G_InitName($user_name){
+		$this->cfgGame['user_name']=$user_name;
 		$this->_pre_get_account();
 		$this->_pre_get_device();
-		$this->R_Init($this->cfg);
+		$this->R_Init($this->cfgGame);
 		//set device_id for user (if new)
 		$this->_get_savers();
 	}
-	public function G_ServerList(){
+	public function G_ServerList(){//DEPRECATED since each server has his own database file
 		//list servers and update DB
 		$data["pd"]=array("app_key"=>$this->user['game_data']['app_key'],"spx_did"=>$this->user['game_data']['spx_did'],"publish"=>"google","device"=>array("gp_adid"=>$this->user['game_data']['device_id'],"android_id"=>"-1","ios_idfa"=>"-1","mac_address"=>"-1","platform"=>"android"),"info"=>array("app_version"=>$this->user['game_data']['pkg_version'],"os_version"=>$this->user['game_data']['device_os_version'],"content_version"=>$this->user['game_data']["sdk_ver"],"platform"=>"android","device_type"=>$this->user["game_data"]["device_detail_type"]));
 		$this->R_Remote("/spx_gsm/api_game_server/serverList/ING004/google/0222/0/ru");
@@ -455,14 +467,14 @@ class GAW extends GAW_RAW{
 		if ($this->user['game_data']["user_name"]!=""){
 			$this->_db_query("update users set device_id='".$this->user['game_data']['device_id']."' where user_id=".$this->user['game_data']['user_id'].";");
 			$this->R_Remote('nmLogin/enterGame');
-			$this->_login_check_ban();
-			$this->_db_save_session();
+			//$this->_login_check_ban();///******
+			//$this->_db_save_session();///******
 			// if commander is locked/baned then update DB and stop
 			
 			$this->R_Remote('nmUnit/getUnitConfig');
 			$this->R_Remote('nmItem/getItemPrice');
 			$this->R_Remote('nmUser/getUserPlanetList');
-			$this->_sync_planets_to_db();
+			//$this->_sync_planets_to_db();////******
 			//$this->G_Ping();
 		}
 	}
